@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Liga Pahlawan - Edu Game</title>
+    <style>
+        :root {
+            --overlay-dark: rgba(20, 20, 35, 0.95); 
+            --panel-glass: rgba(22, 33, 62, 0.85);
+            --accent-color: #ffd700; 
+            --text-color: #ffffff;
+            --white: #ffffff;
+        }
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: url('https://i.imgur.com/1IIOIYa.png') no-repeat center center fixed;
+            background-size: cover;
+            color: var(--white);
+            height: 100vh; height: 100dvh; width: 100vw;
+            overflow: hidden; display: flex; flex-direction: column;
+        }
+
+        /* --- SCREEN CONTAINERS --- */
+        .screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);
+            z-index: 9999; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+            padding: 1rem; transition: opacity 0.5s;
+        }
+        .content-box {
+            background: rgba(255, 255, 255, 0.1); padding: clamp(1rem, 3vh, 2rem);
+            border-radius: 30px; border: 2px solid var(--accent-color);
+            max-width: 800px; width: 95%; box-shadow: 0 0 50px rgba(255, 215, 0, 0.2);
+            max-height: 95vh; overflow-y: auto; display: flex; flex-direction: column; align-items: center;
+        }
+        .game-title {
+            font-size: clamp(1.8rem, 4vw, 3.5rem); font-weight: 900;
+            color: var(--accent-color); margin-bottom: clamp(0.2rem, 1vh, 0.5rem);
+            text-transform: uppercase; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); line-height: 1.2;
+        }
+        .narrative-text { font-size: clamp(0.85rem, 1.8vw, 1.2rem); line-height: 1.4; margin-bottom: clamp(0.5rem, 2vh, 1.5rem); color: #e0e0e0; max-width: 90%; }
+        .tutorial-list { text-align: left; margin: 1rem 0; font-size: clamp(0.85rem, 1.8vw, 1.1rem); line-height: 1.6; color: #f0f0f0; padding-left: 20px; width: 100%; }
+        .tutorial-list li { margin-bottom: 8px; }
+        .input-group { margin: 1rem 0; width: 100%; display: flex; justify-content: center; flex-direction: column; align-items: center; gap: 10px; }
+        .input-group label { font-size: 1.1rem; font-weight: bold; color: #ffd700; text-shadow: 0 2px 4px rgba(0,0,0,0.5); margin-top: 10px;}
+        #player-name-input, #time-mode-select, #jenjang-select {
+            padding: 0.8rem 1.5rem; font-size: clamp(1rem, 2.5vw, 1.2rem);
+            border-radius: 50px; border: 2px solid #4facfe; background: rgba(255, 255, 255, 0.9);
+            color: #333; width: 90%; max-width: 400px; text-align: center; outline: none; transition: 0.3s;
+        }
+        .action-btn {
+            background: linear-gradient(to right, #f83600 0%, #f9d423 100%); border: none;
+            padding: clamp(0.5rem, 1.5vh, 0.8rem) clamp(1.5rem, 4vw, 2.5rem); font-size: clamp(1rem, 2.5vw, 1.5rem);
+            font-weight: bold; color: white; border-radius: 50px; cursor: pointer; transition: transform 0.2s;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3); text-transform: uppercase; margin-top: clamp(0.5rem, 1.5vh, 1rem);
+        }
+        .action-btn:hover { transform: scale(1.05); }
+
+        /* --- CONTROL BUTTONS --- */
+        .top-controls { position: absolute; top: 20px; right: 20px; display: flex; gap: 15px; z-index: 10000; }
+        .control-btn {
+            background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 1.2rem; transition: all 0.3s ease;
+        }
+        .control-btn.playing { background: rgba(46, 204, 113, 0.4); border-color: #2ecc71; box-shadow: 0 0 15px #2ecc71; animation: pulse-music 2s infinite; }
+        @keyframes pulse-music { 0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); } 100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); } }
+
+        /* --- HUD --- */
+        #hud {
+            flex: 0 0 auto; background-color: var(--overlay-dark); backdrop-filter: blur(10px);
+            display: flex; justify-content: space-between; align-items: center; padding: 10px 1rem;
+            border-bottom: 2px solid rgba(255, 215, 0, 0.3); font-size: 1rem; font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 10; display: none; flex-wrap: wrap; gap: 10px;
+        }
+        .hud-left { display: flex; align-items: center; gap: 10px; flex: 1; }
+        .player-profile { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.1); padding: 4px 12px 4px 4px; border-radius: 50px; border: 1px solid rgba(255, 255, 255, 0.2); }
+        .player-avatar { width: 35px; height: 35px; background-image: url('https://i.imgur.com/oXQCjfQ.png'); background-size: cover; background-position: center; border-radius: 50%; border: 2px solid white; }
+        .intro-logo { width: clamp(70px, 12vw, 120px); margin-bottom: clamp(0.2rem, 1vh, 0.5rem); filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.5)); animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .stat-group { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; flex: 2; }
+        .stat-box {
+            background: rgba(255, 255, 255, 0.1); padding: 0.3rem 0.8rem; border-radius: 50px; border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex; align-items: center; gap: 5px; font-size: 0.9rem; box-shadow: inset 0 0 10px rgba(0,0,0,0.3); white-space: nowrap;
+        }
+
+        /* --- ARENA --- */
+        #arena { flex: 1; display: flex; position: relative; display: none; overflow: hidden; }
+        #hero-zone, #monster-zone { flex: 1; padding: 0.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: background 0.3s; overflow-y: auto; }
+        #hero-zone { background: linear-gradient(to right, rgba(16, 52, 96, 0.7), rgba(16, 52, 96, 0.2)); border-right: 1px solid rgba(255,255,255,0.1); }
+        #monster-zone { background: linear-gradient(to left, rgba(60, 20, 20, 0.7), rgba(60, 20, 20, 0.2)); }
+        .zone-title { font-size: clamp(1rem, 2.5vw, 1.8rem); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; text-shadow: 0 0 10px rgba(0,0,0,0.8), 0 0 20px currentColor; text-align: center; }
+        .card-container { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; width: 100%; align-content: center; }
+
+        /* --- CARDS --- */
+        .card {
+            width: clamp(90px, 14vw, 160px); height: clamp(140px, 21vw, 240px); border-radius: 10px; padding: 4px; position: relative;
+            display: flex; flex-direction: column; align-items: center; text-align: center; transition: transform 0.2s; animation: popIn 0.5s;
+            background-size: cover; background-position: center; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.6)); color: #fff; background-color: #2c3e50; border: 2px solid rgba(255,255,255,0.2);
+        }
+        .card:hover { transform: translateY(-5px); z-index: 5; }
+        .card.legend { border: 2px solid #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
+        .card-power { position: absolute; top: 4px; right: 4px; background: linear-gradient(135deg, #ff416c, #ff4b2b); color: white; padding: 2px; border-radius: 50%; font-weight: bold; font-size: clamp(0.7rem, 1.2vw, 1rem); width: clamp(25px, 4vw, 35px); height: clamp(25px, 4vw, 35px); display: flex; justify-content: center; align-items: center; border: 2px solid white; z-index: 2; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
+        .card-price { font-size: clamp(0.6rem, 1vw, 0.8rem); font-weight: bold; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); color: #2ecc71; padding: 2px 6px; border-radius: 20px; margin-top: auto; margin-bottom: 4px; border: 1px solid #2ecc71; z-index: 2; }
+        .special-effect { font-size: clamp(0.5rem, 0.8vw, 0.65rem); font-weight: bold; background: rgba(20, 20, 20, 0.9); color: #f1c40f; margin-top: auto; margin-bottom: 2px; padding: 2px 4px; border-radius: 4px; border: 1px solid #f1c40f; width: 98%; z-index: 2; line-height: 1.1; }
+        .discard-btn { position: absolute; top: -10px; left: -10px; width: clamp(32px, 6vw, 45px); height: clamp(32px, 6vw, 45px); background: #e74c3c; color: white; border-radius: 50%; border: 2px solid white; font-weight: bold; cursor: pointer; z-index: 100; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.5); font-size: clamp(1rem, 2vw, 1.5rem); }
+        .monster-card { width: clamp(140px, 30vw, 240px); height: clamp(210px, 45vw, 340px); border: 4px solid #c0392b; box-shadow: 0 0 30px rgba(192, 57, 43, 0.4); }
+        .monster-card .card-power { background: linear-gradient(135deg, #8e0e00, #1f1c18); border-color: #c0392b; width: clamp(35px, 6vw, 50px); height: clamp(35px, 6vw, 50px); font-size: clamp(0.9rem, 1.5vw, 1.2rem); }
+        .monster-card .card-price { display: none; }
+
+        /* --- ACTION BAR --- */
+        #action-bar { flex: 0 0 auto; min-height: 10vh; background: rgba(10, 10, 10, 0.9); backdrop-filter: blur(10px); display: flex; justify-content: center; align-items: center; gap: 1rem; padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); z-index: 10; display: none; flex-wrap: wrap; }
+        .btn { border: none; padding: 0.6rem 1.5rem; font-size: clamp(0.9rem, 2vw, 1.3rem); font-weight: 800; border-radius: 50px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 5px 10px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .btn-blue { background: linear-gradient(to bottom, #3498db, #2980b9); color: white; border-bottom: 4px solid #1f618d; }
+        .btn-green { background: linear-gradient(to bottom, #2ecc71, #27ae60); color: white; border-bottom: 4px solid #1e8449; }
+        .btn-red { background: linear-gradient(to bottom, #e74c3c, #c0392b); color: white; border-bottom: 4px solid #922b21; }
+        .btn:active { transform: translateY(2px); border-bottom-width: 2px; }
+
+        /* --- MODALS (GENERAL) --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 100; padding: 10px; }
+        .modal-content { background: #fff; padding: 1.5rem; border-radius: 20px; width: 95%; max-width: 750px; max-height: 90vh; overflow-y: auto; text-align: center; color: #333; animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .modal-header { font-size: clamp(1.2rem, 3vw, 1.8rem); font-weight: 900; margin-bottom: 1rem; color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        
+        #shop-modal .modal-content { width: 98%; padding: 1rem; }
+        #shop-container { display: flex; flex-direction: row; justify-content: flex-start; gap: 10px; padding: 10px 5px; overflow-x: auto; width: 100%; min-height: 250px; align-items: center; -webkit-overflow-scrolling: touch; }
+        .shop-item-wrapper { flex: 0 0 auto; cursor: pointer; margin-bottom: 10px; }
+
+        /* --- MODAL CBT STYLE (QUESTION) --- */
+        .modal-content-anbk { background: #fff; border-radius: 12px; width: 98%; max-width: 1200px; max-height: 95vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.7); animation: popIn 0.3s ease-out; }
+        .modal-header-anbk { background: #2c3e50; color: white; padding: 15px 20px; font-size: 1.1rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #3498db; }
+        .modal-body-anbk { display: flex; flex-direction: row; height: 100%; overflow: hidden; background: #eaedf2; }
+        .stimulus-pane { flex: 6; padding: 25px; overflow-y: auto; background: #ffffff; border-right: 2px solid #cbd5e1; font-size: 1.1rem; line-height: 1.7; color: #1e293b; text-align: left; white-space: pre-wrap; font-family: 'Georgia', serif; }
+        .question-pane { flex: 4; padding: 25px; overflow-y: auto; background: #f8fafc; text-align: left; display: flex; flex-direction: column; }
+        .question-text-anbk { font-size: 1.15rem; margin-bottom: 1.5rem; line-height: 1.5; font-weight: bold; color: #0f172a; font-family: 'Segoe UI', sans-serif;}
+        .answers-grid-anbk { display: flex; flex-direction: column; gap: 0.8rem; }
+        .answer-label-anbk { background: #ffffff; border: 2px solid #cbd5e1; padding: 1rem 1.2rem; font-size: 1rem; font-weight: 600; border-radius: 10px; cursor: pointer; transition: 0.2s; color: #334155; display: flex; align-items: flex-start; gap: 12px; line-height: 1.4; font-family: 'Segoe UI', sans-serif; }
+        .answer-label-anbk:hover { background: #f1f5f9; border-color: #94a3b8; }
+        .answer-label-anbk input[type="radio"], .answer-label-anbk input[type="checkbox"] { width: 22px; height: 22px; cursor: pointer; flex-shrink: 0; margin-top: 2px; accent-color: #3498db; }
+        .answer-label-anbk.correct { background: #dcfce7; color: #166534; border-color: #86efac; }
+        .answer-label-anbk.wrong { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+        .modal-footer-anbk { background: #ffffff; padding: 15px 25px; border-top: 2px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 15px; }
+
+        /* Recap */
+        .recap-container { max-height: 350px; overflow-y: auto; text-align: left; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 15px; }
+        .recap-item { border-bottom: 1px solid #ddd; padding: 10px 0; display: flex; flex-direction: column; gap: 5px; font-size: 0.95rem; }
+        .recap-question { font-weight: bold; color: #2c3e50; line-height: 1.4; }
+        .recap-answer { color: #27ae60; font-weight: bold; background: #e8f5e9; padding: 5px 10px; border-radius: 8px; align-self: flex-start;}
+
+        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes slideDown { 0% { transform: translateY(-100px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+        .shake-anim { animation: shake 0.5s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); } 20%, 40%, 60%, 80% { transform: translateX(10px); } }
+
+        #notification { position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: #ffd700; padding: 15px 30px; border-radius: 50px; font-size: clamp(1rem, 3vw, 2rem); font-weight: 900; opacity: 0; pointer-events: none; transition: opacity 0.3s, top 0.3s; z-index: 10001; border: 3px solid #ffd700; box-shadow: 0 0 30px rgba(255, 215, 0, 0.3); text-transform: uppercase; text-shadow: 2px 2px 0 #000; white-space: nowrap; }
+
+        /* --- MOBILE LAYOUT FIX --- */
+        @media (max-width: 768px) {
+            body { height: 100dvh; }
+            .top-controls { top: 10px; right: 10px; gap: 10px; }
+            .control-btn { width: 35px; height: 35px; font-size: 1rem; }
+            #hud { padding: 10px 5px; padding-top: 50px; }
+            .hud-right { display: none; }
+            .stat-group { width: 100%; justify-content: center; gap: 6px; }
+            .stat-box { padding: 0.4rem 0.6rem; font-size: 0.8rem; flex: 0 1 auto; justify-content: center; }
+            .player-profile { display: none; } 
+            #arena { flex-direction: column; overflow-y: auto; flex: 1; }
+            #hero-zone { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); min-height: fit-content; padding-bottom: 20px; }
+            #monster-zone { min-height: 320px; }
+            #action-bar { padding: 8px 5px; gap: 8px; flex-wrap: nowrap; }
+            .btn { padding: 0.6rem 0.3rem; flex: 1; font-size: 0.75rem; justify-content: center; border-radius: 15px; letter-spacing: 0; }
+            .modal-body-anbk { flex-direction: column; overflow-y: auto; }
+            .stimulus-pane { flex: none; border-right: none; border-bottom: 4px solid #cbd5e1; font-size: 1rem; padding: 15px; max-height: 250px;}
+            .question-pane { flex: none; padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <audio id="bgm" loop><source src="https://github.com/belajarituseru39-gif/Liga-Pahlawan/raw/refs/heads/main/LIGA%20PAHLAWAN%20(2).mp3" type="audio/mp3"></audio>
+    <audio id="sfx-correct" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
+    <audio id="sfx-wrong" src="https://assets.mixkit.co/active_storage/sfx/3112/3112-preview.mp3"></audio>
+    <audio id="sfx-buy" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
+    <audio id="sfx-levelup" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"></audio>
+
+    <div class="top-controls">
+        <button class="control-btn" id="music-btn" onclick="toggleMusic()" title="Musik">🔇</button>
+        <button class="control-btn" id="fullscreen-btn" onclick="toggleFullscreen()" title="Layar Penuh">⛶</button>
+    </div>
+
+    <div id="intro-screen" class="screen">
+        <div class="content-box">
+            <img src="https://i.imgur.com/oXQCjfQ.png" alt="Logo Liga Pahlawan" class="intro-logo">
+            <div class="game-title">LIGA PAHLAWAN</div>
+            <p class="narrative-text">"Bumi dalam bahaya besar! Monster-monster kuno telah bangkit dari tidur panjangnya. Mereka mengancam akan menghancurkan peradaban manusia."</p>
+            <p class="narrative-text">"Sebagai Komandan Terpilih, tugasmu adalah mengumpulkan Pahlawan Legendaris, menyusun strategi, dan mengalahkan Raja Monster di level terakhir!"</p>
+            <button class="action-btn" onclick="goToTutorial()">LANJUT ➡</button>
+        </div>
+    </div>
+
+    <div id="tutorial-screen" class="screen" style="display: none; opacity: 0;">
+        <div class="content-box">
+            <div class="game-title" style="font-size: 2rem;">PERSIAPAN TEMPUR</div>
+            <div class="input-group">
+                <input type="text" id="player-name-input" placeholder="Masukkan Nama Komandan..." autocomplete="off">
+                <label>Pilih Jenjang Misi:</label>
+                <select id="jenjang-select">
+                    <option value="SD">Sekolah Dasar (SD)</option>
+                    <option value="SMP">Sekolah Menengah Pertama (SMP)</option>
+                    <option value="SMA">Sekolah Menengah Atas (SMA)</option>
+                </select>
+                <label>Atur Batas Waktu Misi:</label>
+                <select id="time-mode-select">
+                    <option value="0">Tanpa Batas Waktu (Santai)</option>
+                    <option value="10">10 Menit (Cepat)</option>
+                    <option value="15">15 Menit (Menengah)</option>
+                    <option value="30">30 Menit (Lama)</option>
+                </select>
+            </div>
+            <ul class="tutorial-list" style="font-size: 0.95rem;">
+                <li>📝 <strong>Cari Dana:</strong> Jawab soal literasi & numerasi untuk mendapatkan uang.</li>
+                <li>☑️ Terdapat <strong>Pilihan Ganda</strong> dan <strong>Pilihan Ganda Kompleks</strong> (jawaban > 1).</li>
+                <li>🛒 <strong>Toko Hero:</strong> Gunakan uang untuk merekrut Pahlawan (Maks 5).</li>
+                <li>👹 <strong>Serang Monster:</strong> Kalahkan bos jika total kekuatan tim melebihi kekuatan musuh!</li>
+            </ul>
+            <button class="action-btn" onclick="startGame()">SIAP TEMPUR! 🚀</button>
+        </div>
+    </div>
+
+    <div id="hud">
+        <div class="hud-left">
+            <button class="control-btn" onclick="goHome()" title="Beranda" style="width: 35px; height: 35px; font-size: 1rem; background: #e74c3c; border-color: #c0392b;">🏠</button>
+            <div class="player-profile">
+                <div class="player-avatar"></div>
+                <span id="player-name-display">Komandan</span>
+            </div>
+            <div style="background: rgba(255,215,0,0.2); border: 1px solid gold; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; color: gold; font-weight: bold;" id="jenjang-badge">SD</div>
+        </div>
+        <div class="stat-group">
+            <div class="stat-box"><span>🛡️ Lvl:</span><span id="level-display" style="color: #f1c40f;">1</span></div>
+            <div class="stat-box"><span>💰 Dana:</span><span id="money-display" style="color: #2ecc71;">0</span></div>
+            <div class="stat-box"><span>⚔️ Hero:</span><span id="player-power-display" style="color: #e94560;">0</span></div>
+            <div class="stat-box"><span>👹 Musuh:</span><span id="monster-power-display" style="color: #e74c3c;">690</span></div>
+            <div class="stat-box" id="timer-box" style="display:none;"><span>⏱️ Sisa:</span><span id="time-display" style="color: #fff;">--:--</span></div>
+        </div>
+        <div class="hud-right"></div>
+    </div>
+
+    <div id="arena">
+        <div id="hero-zone">
+            <div class="zone-title" style="color: #64b5f6;">Tim Pahlawan (Max 5)</div>
+            <div class="card-container" id="my-heroes">
+                <div style="opacity: 0.7; font-style: italic; color: #ddd; font-size: 1.2rem; margin-top: 50px;">Belum ada pahlawan.</div>
+            </div>
+            <div id="buff-indicator" style="margin-top:10px; color: #ffd700; font-weight:bold; display:none; font-size: 1rem; text-shadow: 0 0 5px gold;"></div>
+        </div>
+        <div id="monster-zone">
+            <div class="zone-title" style="color: #e57373;">Zona Monster</div>
+            <div class="card-container" id="current-monster"></div>
+        </div>
+    </div>
+
+    <div id="action-bar">
+        <button class="btn btn-blue" onclick="openQuestion()">📝 Cari Dana</button>
+        <button class="btn btn-green" onclick="openShop()">🛒 Toko Hero</button>
+        <button class="btn btn-red" onclick="attackMonster()">⚔️ Serang!</button>
+    </div>
+    <div id="notification">Notification</div>
+
+    <div class="modal-overlay" id="question-modal" style="background: rgba(0,0,0,0.9);">
+        <div class="modal-content-anbk">
+            <div class="modal-header-anbk">
+                <div id="q-category">LITERASI & NUMERASI</div>
+                <div id="q-difficulty" style="background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 15px; font-size: 0.85rem;">Level</div>
+            </div>
+            <div class="modal-body-anbk">
+                <div class="stimulus-pane"><div id="q-stimulus">Memuat teks bacaan...</div></div>
+                <div class="question-pane">
+                    <div class="question-text-anbk" id="q-text">Isi pertanyaan...</div>
+                    <div class="answers-grid-anbk" id="q-options"></div>
+                </div>
+            </div>
+            <div class="modal-footer-anbk">
+                <button class="btn btn-red" onclick="closeModal('question-modal')">Tutup</button>
+                <button class="btn btn-blue" id="submit-answer-btn">Simpan Jawaban</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="shop-modal">
+        <div class="modal-content">
+            <div class="modal-header">Toko Pahlawan</div>
+            <p style="margin-bottom: 10px; font-weight: bold;">Rekrut pahlawan untuk tim! (Maks 5 Slot)</p>
+            <div id="shop-container"></div>
+            <button class="btn btn-red" style="margin-top: 20px; width: 100%; justify-content: center;" onclick="closeModal('shop-modal')">Tutup Toko</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="result-modal">
+        <div class="modal-content">
+            <div class="modal-header" id="result-title">Hasil</div>
+            <div class="question-text" id="result-message">Pesan...</div>
+            <div id="final-recap-area" style="display: none;">
+                <h3 style="margin-bottom: 15px; color:#2c3e50;">Rekapan Jawaban Benar Misi Ini:</h3>
+                <div class="recap-container" id="recap-list"></div>
+                <div style="margin-top: 20px;"><button class="btn btn-green" style="width: 100%; justify-content: center;" onclick="location.reload()">🔄 Main Lagi</button></div>
+            </div>
+            <div id="normal-nav-buttons" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+                <button class="btn btn-blue" onclick="closeModal('result-modal')" id="btn-next-level">Lanjut Level ➡</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="home-confirm-modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header" style="color: #e74c3c;">Konfirmasi Keluar</div>
+            <div class="question-text">Apakah Anda yakin ingin keluar?<br><span style="font-size: 0.9rem; color: #7f8c8d;">Semua progres permainan dan uang akan hilang.</span></div>
+            <div style="display: flex; justify-content: center; gap: 15px; margin-top: 20px;">
+                <button class="btn btn-red" onclick="location.reload()">Keluar</button>
+                <button class="btn btn-blue" onclick="closeModal('home-confirm-modal')">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="discard-confirm-modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header" style="color: #e74c3c;">Buang Pahlawan?</div>
+            <div class="question-text">Apakah Anda yakin memecat pahlawan ini?<br><span style="font-size: 0.9rem; color: #7f8c8d;">Slot tim akan kosong, uang tidak dikembalikan.</span></div>
+            <div style="display: flex; justify-content: center; gap: 15px; margin-top: 20px;">
+                <button class="btn btn-red" onclick="executeDiscard()">Pecat</button>
+                <button class="btn btn-blue" onclick="closeModal('discard-confirm-modal')">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function goHome() { document.getElementById('home-confirm-modal').style.display = 'flex'; }
+        function goToTutorial() {
+            document.getElementById('intro-screen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('intro-screen').style.display = 'none';
+                const tut = document.getElementById('tutorial-screen');
+                tut.style.display = 'flex'; void tut.offsetWidth; tut.style.opacity = '1';
+            }, 500);
+        }
+
+        const HERO_DB = [
+            { id: 1, name: "Kapten Superior", tier: "common", power: 270, price: 20000, imgUrl: "https://i.imgur.com/RxZAEOX.png" },
+            { id: 2, name: "Pamong Botani", tier: "common", power: 170, price: 20000, imgUrl: "https://i.imgur.com/I6xbc9m.png" },
+            { id: 3, name: "Pendekar Bara", tier: "common", power: 180, price: 20000, imgUrl: "https://i.imgur.com/uAYFMyC.png" },
+            { id: 4, name: "Sesepuh Akal", tier: "common", power: 220, price: 20000, imgUrl: "https://i.imgur.com/qKHCSwx.png" },
+            { id: 5, name: "Nona Afiat", tier: "common", power: 140, price: 20000, imgUrl: "https://i.imgur.com/iqrWjXY.png" },
+            { id: 6, name: "Pelindung Alam", tier: "rare", power: 290, price: 50000, imgUrl: "https://i.imgur.com/X9WfBkC.png" },
+            { id: 7, name: "Sang Penunggang Naga", tier: "rare", power: 320, price: 50000, imgUrl: "https://i.imgur.com/Vzh2kX3.png" },
+            { id: 8, name: "Algojo Supranatural", tier: "rare", power: 300, price: 50000, imgUrl: "https://i.imgur.com/hfg0L6D.png" },
+            { id: 9, name: "Komandan Metropolis", tier: "rare", power: 320, price: 50000, imgUrl: "https://i.imgur.com/w6fUWuG.png" },
+            { id: 10, name: "Panglima Surya", tier: "legend", power: 400, price: 120000, effect: "+30 All Power", imgUrl: "https://i.imgur.com/56D69kW.png" },
+            { id: 11, name: "Panglima Lunar", tier: "legend", power: 400, price: 120000, effect: "-30 Power Monster", imgUrl: "https://i.imgur.com/RpMZREE.png" },
+            { id: 12, name: "Panglima Gaia", tier: "legend", power: 400, price: 120000, effect: "+10 All Power", imgUrl: "https://i.imgur.com/lcLuW7D.png" }
+        ];
+
+        const MONSTER_LEVELS = [
+            { level: 1, power: 690, name: "Iblis Karang", imgUrl: "https://i.imgur.com/x530qSv.png" },
+            { level: 2, power: 900, name: "Lidah Api Gurun", imgUrl: "https://i.imgur.com/mZBUen4.png" },
+            { level: 3, power: 1200, name: "Beruang Batu", imgUrl: "https://i.imgur.com/d9M4IUs.png" },
+            { level: 4, power: 1600, name: "Golem Robo", imgUrl: "https://i.imgur.com/pAJHg59.png" },
+            { level: 5, power: 2200, name: "Jenderal Naga Hitam", imgUrl: "https://i.imgur.com/bEtpTiF.png" }
+        ];
+
+        const DB_BASE_SOAL = {
+            SD: [
+                {id:"sd_n_1",category:"NUMERASI SD",difficulty:"easy",type:"single",stimulus:"Ibu Wati sedang mempersiapkan bahan-bahan untuk membuat dua jenis kue tradisional dalam rangka merayakan hari kemerdekaan. Ia membeli tepung terigu sebanyak 5,5 kg dari pasar. Untuk membuat kue lapis, Ibu Wati menggunakan 1 3/4 kg (atau 1,75 kg) tepung terigu. Kemudian, untuk membuat kue donat, ia menghabiskan 2,4 kg tepung terigu. Ibu Wati ingin memastikan apakah sisa tepung terigunya masih cukup untuk membuat satu porsi kue cubit yang membutuhkan setidaknya 1 kg tepung. Perhitungan yang cermat diperlukan agar tidak kekurangan bahan di tengah proses memasak.",text:"Berdasarkan cerita tersebut, sisa tepung terigu milik Ibu Wati setelah digunakan untuk membuat kue lapis dan donat adalah ....",options:["1,15 kg","1,35 kg","1,55 kg","1,75 kg"],correct:["1,35 kg"]},
+                {id:"sd_n_2",category:"NUMERASI SD",difficulty:"easy",type:"single",stimulus:"Andi memiliki hobi mengoleksi kelereng unik dari berbagai daerah. Saat ini, ia memiliki tepat 42 butir kelereng yang ingin ia simpan ke dalam beberapa wadah kecil. Andi ingin setiap wadah berisi jumlah kelereng yang sama banyak tanpa ada sisa. Ia mencoba berbagai kemungkinan pembagian agar kelerengnya tertata rapi di rak pajangan kamarnya.",text:"Bilangan yang bukan merupakan faktor dari jumlah kelereng Andi sehingga tidak bisa membagi kelereng secara rata adalah ....",options:["3","4","6","7"],correct:["4"]},
+                {id:"sd_n_3",category:"NUMERASI SD",difficulty:"easy",type:"single",stimulus:"Seorang petani memiliki kebun berbentuk persegi panjang. Setelah diukur dengan seksama menggunakan alat ukur meteran gulung, diketahui bahwa luas sebenarnya kebun tersebut adalah 100 meter persegi. Petani tersebut ingin menggambar denah kebunnya di atas kertas dengan skala 1 : 100 agar mudah saat merencanakan saluran irigasi buatan.",text:"Jika luas sebenarnya adalah 100 meter persegi, berapakah panjang sisi pada denah jika digambarkan dengan skala tersebut (diasumsikan bentuk kebunnya persegi agar mudah digambar)?",options:["10 cm","100 cm","1.000 cm","10.000 cm"],correct:["1.000 cm"]},
+                {id:"sd_n_4",category:"NUMERASI SD",difficulty:"easy",type:"single",stimulus:"Sebuah organisasi kemanusiaan menerima sumbangan berupa 72 paket beras dan 96 kaleng sarden. Pengurus organisasi ingin membagikan sumbangan tersebut ke sebanyak mungkin keluarga terdampak bencana dengan ketentuan setiap keluarga menerima jenis dan jumlah barang yang sama persis. Tidak boleh ada barang yang tersisa agar pembagian benar-benar adil bagi semua penerima manfaat.",text:"Jumlah maksimal keluarga yang dapat menerima paket bantuan tersebut adalah ....",options:["12 keluarga","18 keluarga","24 keluarga","32 keluarga"],correct:["24 keluarga"]},
+                {id:"sd_n_5",category:"NUMERASI SD",difficulty:"easy",type:"single",stimulus:"Pak Budi memiliki sebidang kebun sayur berbentuk persegi panjang yang terletak di belakang rumahnya. Panjang kebun tersebut adalah 15 meter, sedangkan lebarnya 8 meter. Untuk melindungi tanaman sayurnya dari gangguan hewan liar, Pak Budi berencana memasang pagar kawat mengelilingi seluruh batas kebun tersebut. Ia harus membeli kawat di toko bangunan yang menjual kawat dalam satuan meter utuh.",text:"Panjang minimal kawat yang harus dibeli oleh Pak Budi agar seluruh kebunnya dapat dipagari adalah ....",options:["23 meter","31 meter","46 meter","120 meter"],correct:["46 meter"]},
+                {id:"sd_n_6",category:"NUMERASI SD",difficulty:"easy",type:"single",stimulus:"Seorang siswa kelas 6 sedang belajar mengenai geometri ruang di sekolah. Ia diberikan sebuah lembar kertas yang berisi pola datar yang dapat dilipat-lipat menjadi sebuah bangun tiga dimensi. Pola tersebut terdiri dari enam bidang datar berbentuk persegi yang identik satu sama lain. Ia harus membayangkan bagaimana jika sisi-sisi tersebut disatukan secara presisi untuk membentuk sebuah bangun ruang yang utuh tanpa celah.",text:"Jika pola datar tersebut dirangkai menjadi sebuah bangun ruang, maka bangun ruang yang terbentuk adalah ....",options:["Prisma segitiga","Balok","Kubus","Limas segiempat"],correct:["Kubus"]},
+                {id:"sd_n_7",category:"NUMERASI SD",difficulty:"easy",type:"single",stimulus:"Riko baru saja membeli sebuah akuarium baru untuk ikan hiasnya. Akuarium tersebut berbentuk balok dengan ukuran panjang 60 cm, lebar 40 cm, dan tinggi 50 cm. Riko ingin mengisi akuarium tersebut dengan air hingga penuh. Ia mengetahui bahwa 1 liter air setara dengan 1.000 cm kubik. Pemahaman tentang volume sangat penting agar Riko tidak membuang-buang air saat mengisi.",text:"Volume air maksimal yang dapat ditampung dalam akuarium Riko adalah ....",options:["12 liter","120 liter","1.200 liter","12.000 liter"],correct:["120 liter"]},
+                {id:"sd_n_8",category:"NUMERASI SD",difficulty:"easy",type:"single",stimulus:"Siti gemar bersepeda setiap hari Minggu pagi untuk menjaga kebugaran tubuhnya. Ia menempuh perjalanan dari rumahnya menuju taman kota yang berjarak 15 kilometer. Siti berangkat pada pukul 06.00 dan tiba di taman kota pada pukul 06.45. Selama perjalanan, ia melewati beberapa persimpangan lampu merah dan tanjakan yang membuatnya harus mengatur ritme kayuhannya.",text:"Kecepatan rata-rata bersepeda Siti selama perjalanan tersebut adalah ....",options:["15 km/jam","20 km/jam","25 km/jam","30 km/jam"],correct:["20 km/jam"]},
+                {id:"sd_n_9",category:"NUMERASI SD",difficulty:"easy",type:"single",stimulus:"Seorang arsitek sedang memamerkan maket atau model jembatan yang akan dibangun di sebuah kota besar. Maket tersebut dibuat dengan skala 1: 250. Dalam maket tersebut, panjang bentang utama jembatan adalah 12 cm. Para pengunjung pameran ingin mengetahui seberapa panjang sebenarnya jembatan tersebut jika sudah selesai dibangun agar bisa membayangkan kemegahannya di lokasi proyek.",text:"Panjang sebenarnya dari bentang utama jembatan tersebut adalah ....",options:["30 meter","300 meter","3.000 meter","30.000 meter"],correct:["30 meter"]},
+                {id:"sd_n_10",category:"NUMERASI SD",difficulty:"easy",type:"single",stimulus:"Doni memiliki kebiasaan menyisihkan uang saku untuk ditabung setiap hari. Dalam seminggu terakhir, jumlah uang yang ia tabung adalah sebagai berikut: Senin Rp 2.000, Selasa Rp 3.000, Rabu Rp 2.500, Kamis Rp 4.000, Jumat Rp 3.500, Sabtu Rp 5.000, dan Minggu Rp 1.000. Doni mencatat semua pengeluaran dan tabungannya agar ia bisa merencanakan pembelian buku cerita impiannya di akhir bulan.",text:"Rata-rata uang yang ditabung Doni setiap harinya selama satu minggu tersebut adalah ....",options:["Rp 2.500","Rp 3.000","Rp 3.100","Rp 3.500"],correct:["Rp 3.000"]},
+                {id:"sd_n_11",category:"NUMERASI SD",difficulty:"medium",type:"single",stimulus:"Taman Mentari memiliki dua sistem perawatan otomatis. Sistem penyiraman rumput beroperasi setiap 4 hari sekali, sedangkan sistem pembersihan kolam dilakukan setiap 6 hari sekali. Pada tanggal 1 Agustus, kedua kegiatan tersebut dilakukan secara bersamaan oleh petugas taman. Pengelola taman harus mengatur jadwal agar penggunaan air dan tenaga kerja pada saat kedua kegiatan bertemu tidak membebani anggaran operasional bulanan. Mereka perlu mengetahui kapan saja titik pertemuan kegiatan tersebut terjadi di bulan Agustus.",text:"Berdasarkan jadwal tersebut, pernyataan berikut yang benar mengenai pertemuan kedua kegiatan tersebut adalah ....",options:["Kegiatan bersamaan berikutnya terjadi pada tanggal 13 Agustus.","Kedua kegiatan akan bertemu kembali setiap 12 hari sekali.","Dalam bulan Agustus, pertemuan kedua kegiatan terjadi sebanyak 3 kali saja.","Tanggal 25 Agustus adalah hari terakhir kedua kegiatan dilakukan bersamaan di bulan tersebut."],correct:["Kedua kegiatan akan bertemu kembali setiap 12 hari sekali."]},
+                {id:"sd_n_12",category:"NUMERASI SD",difficulty:"medium",type:"single",stimulus:"Desa Sukamaju mencatat hasil panen padi mereka selama empat tahun terakhir untuk keperluan laporan ketahanan pangan daerah. Data tersebut menunjukkan fluktuasi hasil panen yang dipengaruhi oleh cuaca dan ketersediaan pupuk. Hasil panen berturut-turut: Tahun 2019 (40 ton), 2020 (35 ton), 2021 (50 ton), 2022 (45 ton). Pemerintah desa perlu menganalisis tren ini untuk memutuskan apakah mereka perlu membangun gudang penyimpanan baru atau meningkatkan sistem irigasi pada tahun-tahun mendatang.",text:"Berdasarkan data grafik hasil panen desa Sukamaju, pernyataan yang tepat adalah ....",options:["Rata-rata hasil panen padi selama empat tahun adalah 42,5 ton.","Kenaikan hasil panen tertinggi terjadi pada periode tahun 2020 ke 2021.","Total seluruh hasil panen selama empat tahun tersebut adalah 175 ton.","Hasil panen pada tahun 2022 mengalami penurunan sebesar 10% dibanding tahun 2021."],correct:["Kenaikan hasil panen tertinggi terjadi pada periode tahun 2020 ke 2021."]},
+                {id:"sd_n_13",category:"NUMERASI SD",difficulty:"medium",type:"single",stimulus:"Dalam sebuah permainan tebak-tebakan matematika, seorang siswa memberikan petunjuk tentang sebuah bangun datar. Bangun tersebut memiliki empat sisi, di mana sisi-sisi yang berhadapan sejajar dan sama panjang. Selain itu, bangun ini memiliki dua pasang sudut yang sama besar, namun tidak memiliki sudut siku-siku sama sekali. Petunjuk ini mengarah pada ciri khas geometri yang sangat spesifik dan mudah ditebak bagi yang jeli.",text:"Bangun datar yang dimaksud berdasarkan petunjuk siswa tersebut adalah ....",options:["Persegi panjang","Jajar genjang","Trapesium siku-siku","Layang-layang"],correct:["Jajar genjang"]},
+                {id:"sd_n_14",category:"NUMERASI SD",difficulty:"medium",type:"single",stimulus:"Pak Slamet pergi to toko alat tulis untuk melengkapi kebutuhan kantornya. Ia membeli 15 pak buku tulis dengan harga Rp 45.000 per pak dan 8 buah penggaris besi dengan harga Rp 7.500 per buah. Pak Slamet membawa uang tunai sebesar Rp 800.000. Ia ingin mengetahui berapa total belanjaannya agar ia bisa menghitung kembalian yang seharusnya diterima dari kasir tanpa harus menunggu terlalu lama.",text:"Total biaya yang harus dibayar oleh Pak Slamet untuk semua barang tersebut adalah ....",options:["Rp 675.000","Rp 725.000","Rp 735.000","Rp 755.000"],correct:["Rp 735.000"]},
+                {id:"sd_n_15",category:"NUMERASI SD",difficulty:"medium",type:"single",stimulus:"Dinas Pekerjaan Umum sedang melakukan perbaikan jalan di dua lokasi yang berbeda. Lokasi pertama memiliki panjang jalan yang diperbaiki sejauh 2,5 kilometer, sedangkan lokasi kedua memiliki panjang 1.200 meter. Mandor proyek perlu menghitung total panjang jalan yang diperbaiki dalam satuan meter untuk memesan material aspal yang diperlukan bagi kedua lokasi tersebut agar tidak terjadi kelebihan pasokan.",text:"Total panjang jalan yang diperbaiki oleh Dinas Pekerjaan Umum di kedua lokasi tersebut adalah ....",options:["1.450 meter","2.620 meter","3.700 meter","4.200 meter"],correct:["3.700 meter"]},
+                {id:"sd_n_16",category:"NUMERASI SD",difficulty:"medium",type:"single",stimulus:"Di dalam sebuah kotak terdapat 5 bola merah, 3 bola kuning, dan 2 bola hijau yang memiliki bentuk dan ukuran identik. Seorang anak diminta mengambil satu bola secara acak tanpa melihat ke dalam kotak. Percobaan ini dilakukan untuk memberikan pemahaman dasar tentang kemungkinan atau probabilitas suatu kejadian dalam matematika sehari-hari secara nyata di depan kelas.",text:"Peluang terambilnya bola yang BUKAN berwarna merah dari kotak tersebut adalah ....",options:["2/10","3/10","5/10","7/10"],correct:["5/10"]},
+                {id:"sd_n_17",category:"NUMERASI SD",difficulty:"medium",type:"single",stimulus:"Saat belajar kelompok, Budi dan Ani menemukan beberapa kartu bilangan pecahan. Mereka mencoba mengelompokkan kartu-kartu yang memiliki nilai yang sama meskipun angka pembilang dan penyebutnya berbeda. Kegiatan ini membantu mereka memahami konsep perbandingan nilai pada pecahan biasa maupun pecahan desimal sebelum melanjutkan ke bab yang lebih sulit.",text:"Di antara pasangan pecahan berikut, yang merupakan pecahan senilai adalah ....",options:["1/2 dan 0,2","3/4 dan 0,75","2/5 dan 0,5","1/4 dan 0,4"],correct:["3/4 dan 0,75"]},
+                {id:"sd_n_18",category:"NUMERASI SD",difficulty:"medium",type:"single",stimulus:"Seorang penjahit ingin membuat pola hiasan dinding dari sisa-sisa kain perca. Pola yang dibuat terdiri dari dua bagian berbentuk persegi panjang yang digabungkan. Bagian pertama memiliki ukuran panjang 10 cm dan lebar 4 cm. Bagian kedua memiliki ukuran panjang 6 cm dan lebar 4 cm. Penjahit tersebut harus menghitung luas total kain yang dibutuhkan agar bisa memotong bahan dengan efisien dan tidak membuang sisa kain sembarangan.",text:"Luas total gabungan kedua bangun tersebut berdasarkan ukuran yang diberikan adalah ....",options:["40 cm persegi","64 cm persegi","72 cm persegi","100 cm persegi"],correct:["64 cm persegi"]},
+                {id:"sd_n_19",category:"NUMERASI SD",difficulty:"medium",type:"single",stimulus:"Siska melakukan percobaan sains sederhana di rumah. Ia mengisi sebuah gelas ukur dengan air hingga mencapai volume 300 ml. Kemudian, Siska memasukkan sebuah batu hias ke dalam gelas tersebut sehingga batu tersebut tenggelam sepenuhnya. Setelah diamati, permukaan air di dalam gelas ukur naik menunjukkan angka 425 ml. Siska mencatat perubahan tersebut untuk memahami hubungan antara volume benda padat dan kenaikan level air.",text:"Berdasarkan hasil pengamatan Siska, volume batu hias tersebut adalah ....",options:["125 cm kubik","300 cm kubik","425 cm kubik","725 cm kubik"],correct:["125 cm kubik"]},
+                {id:"sd_n_20",category:"NUMERASI SD",difficulty:"medium",type:"single",stimulus:"Dua buah bus pariwisata memiliki jadwal keberangkatan yang berbeda dari terminal yang sama. Bus 'A' berangkat setiap 15 menit, sementara bus 'B' berangkat setiap 20 menit. Pada pukul 08.00 pagi, kedua bus tersebut berangkat secara bersamaan dari terminal. Penumpang yang ingin naik kedua bus pada waktu yang sama perlu mengetahui jadwal pertemuan berikutnya agar tidak menunggu terlalu lama di ruang tunggu terminal.",text:"Kedua bus tersebut akan berangkat bersamaan kembali untuk kedua kalinya pada pukul ....",options:["08.35","08.45","09.00","09.30"],correct:["09.00"]},
+                {id:"sd_n_21",category:"NUMERASI SD",difficulty:"medium",type:"single",stimulus:"Kakak yang tinggal di Jakarta (WIB) ingin menelepon temannya yang berada di Jayapura (WIT). Perbedaan waktu antara Jakarta dan Jayapura adalah 2 jam, di mana Jayapura lebih awal dibandingkan Jakarta. Kakak berencana menelepon pada pukul 19.30 waktu Jakarta agar temannya belum tertidur lelap. Kakak harus memperhatikan pembagian zona waktu di Indonesia agar tidak mengganggu jam istirahat temannya tersebut.",text:"Saat di Jakarta menunjukkan pukul 19.30, maka di Jayapura menunjukkan pukul ....",options:["17.30","20.30","21.30","22.30"],correct:["21.30"]},
+                {id:"sd_n_22",category:"NUMERASI SD",difficulty:"medium",type:"single",stimulus:"Guru olahraga mendata ukuran sepatu 10 siswa yang mengikuti kegiatan ekstrakurikuler basket untuk memesan seragam sepatu tim. Data yang diperoleh adalah sebagai berikut: 36, 38, 37, 38, 39, 38, 40, 37, 38, 39. Penggunaan data statistik sederhana ini membantu guru dalam menentukan ukuran yang paling banyak dibutuhkan agar stok sepatu yang dipesan sesuai dengan kebutuhan mayoritas anggota tim dan tidak mubazir.",text:"Modus atau ukuran sepatu yang paling banyak dimiliki oleh siswa tersebut adalah ....",options:["37","38","39","40"],correct:["38"]},
+                {id:"sd_n_23",category:"NUMERASI SD",difficulty:"medium",type:"single",stimulus:"Pak Tani memiliki sawah berbentuk persegi panjang dengan luas keseluruhan 600 meter persegi. Ia mengetahui bahwa lebar sawahnya adalah 20 meter. Tahun ini, Pak Tani berencana membagi sawahnya menjadi dua bagian yang sama besar untuk ditanami padi dan jagung. Sebelum membaginya, ia perlu mengetahui panjang total sawahnya agar pembagian lahan dapat dilakukan dengan tepat dan simetris di sepanjang sisinya tanpa merugikan area satu dan lainnya.",text:"Panjang dari sawah milik Pak Tani tersebut adalah ....",options:["25 meter","30 meter","35 meter","40 meter"],correct:["30 meter"]},
+                {id:"sd_n_24",category:"NUMERASI SD",difficulty:"medium",type:"single",stimulus:"Di sebuah daerah pegunungan yang sangat dingin, suhu udara pada pagi hari tercatat mencapai -3 derajat Celcius. Seiring dengan naiknya matahari, suhu udara perlahan meningkat dan pada siang hari suhu mencapai 12 derajat Celcius. Perubahan suhu yang cukup ekstrem ini mengharuskan penduduk setempat menggunakan pakaian yang sesuai agar kesehatan mereka tetap terjaga di tengah cuaca pegunungan yang berubah-ubah dengan drastis.",text:"Besar kenaikan suhu udara dari pagi hingga siang hari di daerah tersebut adalah ....",options:["9 derajat Celcius","12 derajat Celcius","15 derajat Celcius","18 derajat Celcius"],correct:["15 derajat Celcius"]},
+                {id:"sd_n_25",category:"NUMERASI SD",difficulty:"medium",type:"single",stimulus:"Untuk membuat satu teko sirup jeruk yang segar, perbandingan antara sari jeruk murni dan air adalah 1: 4. Jika Ibu ingin menggunakan 250 ml sari jeruk murni untuk menjamu tamu yang datang, ia harus menambahkan air dengan perbandingan yang tepat agar rasa sirupnya tidak terlalu manis ataupun terlalu hambar. Pengetahuan tentang rasio sangat membantu Ibu dalam menyajikan minuman dengan kualitas rasa yang sangat konsisten dan menyegarkan.",text:"Volume air yang harus ditambahkan oleh Ibu untuk membuat sirup tersebut adalah ....",options:["500 ml","750 ml","1.000 ml","1.250 ml"],correct:["1.000 ml"]},
+                {id:"sd_n_26",category:"NUMERASI SD",difficulty:"hard",type:"multiple",stimulus:"Anto mencatat pertumbuhan tinggi badannya setiap tahun pada saat ulang tahunnya. Data ini digunakan oleh orang tuanya untuk memantau kesehatan dan kecukupan gizi Anto selama masa pertumbuhan. Tinggi badan Anto dari umur 7 hingga 10 tahun adalah: 7 th (120 cm), 8 th (125 cm), 9 th (132 cm), 10 th (140 cm). Terlihat bahwa kecepatan pertumbuhan Anto tidak selalu sama setiap tahunnya, yang merupakan hal wajar dalam tahapan perkembangan anak seusianya.",text:"Berdasarkan tabel pertumbuhan Anto, kesimpulan yang benar adalah .... (Pilih semua jawaban yang benar!)",options:["Pertambahan tinggi badan Anto dari umur 7 ke 8 tahun adalah 5 cm.","Laju pertumbuhan tertinggi Anto terjadi antara usia 9 ke 10 tahun.","Tinggi badan Anto selalu meningkat lebih dari 7 cm setiap tahunnya.","Anto mengalami pertumbuhan total sebesar 20 cm selama periode tersebut."],correct:["Pertambahan tinggi badan Anto dari umur 7 ke 8 tahun adalah 5 cm.","Laju pertumbuhan tertinggi Anto terjadi antara usia 9 ke 10 tahun.","Anto mengalami pertumbuhan total sebesar 20 cm selama periode tersebut."]},
+                {id:"sd_n_27",category:"NUMERASI SD",difficulty:"hard",type:"single",stimulus:"Pada denah sebuah kompleks perumahan yang menggunakan skala 1: 100, sebuah kavling tanah berbentuk persegi digambarkan dengan panjang sisi 10 cm. Calon pembeli ingin mengetahui luas sebenarnya dari tanah tersebut dalam satuan meter persegi untuk memperhitungkan biaya pajak bumi dan bangunan yang harus dibayarkan setiap tahunnya kepada pemerintah setempat.",text:"Luas sebenarnya dari kavling tanah tersebut adalah ....",options:["10 meter persegi","100 meter persegi","1.000 meter persegi","10.000 meter persegi"],correct:["100 meter persegi"]},
+                {id:"sd_n_28",category:"NUMERASI SD",difficulty:"hard",type:"single",stimulus:"Seorang perajin kotak kado sedang menghitung kebutuhan bahan karton untuk membuat wadah berbentuk kubus. Ia tahu bahwa untuk menghitung isi atau kapasitas dari kotak tersebut, ia harus menggunakan rumus volume bangun ruang. Kubus memiliki karakteristik unik di mana semua rusuknya memiliki panjang yang sama, sehingga mempermudah proses perhitungan matematisnya tanpa harus mengukur semua sisinya.",text:"Data yang paling krusial dibutuhkan untuk menghitung volume sebuah kotak kubus adalah ....",options:["Luas alas dan tinggi yang berbeda","Panjang salah satu rusuknya","Jumlah titik sudut","Keliling bidang alas"],correct:["Panjang salah satu rusuknya"]},
+                {id:"sd_n_29",category:"NUMERASI SD",difficulty:"hard",type:"multiple",stimulus:"Dina sedang menggambar berbagai jenis segitiga di buku gambarnya. Ia menggambar sebuah segitiga yang memiliki satu sudut sebesar 90 derajat dan dua sisinya memiliki panjang yang sama. Guru matematikanya meminta Dina untuk mengidentifikasi sifat-sifat yang melekat pada segitiga tersebut agar Dina memahami klasifikasi bangun datar secara lebih mendalam baik berdasarkan sudut maupun panjang sisinya secara presisi.",text:"Pernyataan yang tepat mengenai segitiga yang digambar oleh Dina adalah .... (Pilih semua jawaban yang benar!)",options:["Segitiga tersebut termasuk dalam kategori segitiga lancip.","Segitiga tersebut merupakan segitiga siku-siku.","Segitiga tersebut juga merupakan segitiga sama kaki.","Jumlah dua sudut lainnya pada segitiga tersebut adalah 90 derajat."],correct:["Segitiga tersebut merupakan segitiga siku-siku.","Segitiga tersebut juga merupakan segitiga sama kaki.","Jumlah dua sudut lainnya pada segitiga tersebut adalah 90 derajat."]},
+                {id:"sd_n_30",category:"NUMERASI SD",difficulty:"hard",type:"multiple",stimulus:"Toko 'Amanah' memberikan diskon 20% untuk semua jenis tas, sedangkan Toko 'Berkah' memberikan potongan harga tetap sebesar Rp 50.000 untuk setiap tas. Lani ingin membeli sebuah tas yang harga aslinya di kedua toko tersebut sama, yaitu Rp 200.000. Lani harus membandingkan kedua penawaran tersebut untuk mendapatkan harga termurah agar sisa uang sakunya bisa digunakan untuk keperluan sekolah lainnya di hari pertama masuk nanti.",text:"Setelah membandingkan kedua toko tersebut, pernyataan yang benar adalah .... (Pilih semua jawaban yang benar!)",options:["Harga tas di Toko Amanah setelah diskon adalah Rp 160.000.","Harga tas di Toko Berkah lebih murah dibandingkan Toko Amanah.","Potongan harga di Toko Berkah setara dengan diskon 25%.","Lani akan menghemat Rp 10.000 jika memilih membeli di Toko Berkah."],correct:["Harga tas di Toko Amanah setelah diskon adalah Rp 160.000.","Harga tas di Toko Berkah lebih murah dibandingkan Toko Amanah.","Potongan harga di Toko Berkah setara dengan diskon 25%.","Lani akan menghemat Rp 10.000 jika memilih membeli di Toko Berkah."]},
+                // LITERASI SD
+                {id:"sd_l_1",category:"LITERASI SD",difficulty:"easy",type:"single",stimulus:"Metode hidroponik menjadi solusi bagi masyarakat perkotaan yang ingin berkebun di lahan sempit. Dalam sistem ini, tanaman tidak memerlukan tanah, melainkan menggunakan media air yang telah diberi larutan nutrisi. Nutrisi tersebut mengandung berbagai unsur hara yang sangat dibutuhkan tanaman untuk tumbuh secara optimal. Selain hemat lahan, metode ini juga dinilai lebih bersih karena tidak melibatkan tanah yang berisiko membawa hama atau penyakit.",text:"Berdasarkan teks tersebut, makna kata 'nutrisi' yang paling tepat adalah ....",options:["Proses pengolahan lahan sempit agar menjadi subur","Zat makanan yang diperlukan untuk pertumbuhan dan perkembangan","Alat khusus yang digunakan untuk mengalirkan air pada tanaman","Hama atau penyakit yang sering menyerang tanaman hidroponik"],correct:["Zat makanan yang diperlukan untuk pertumbuhan dan perkembangan"]},
+                {id:"sd_l_2",category:"LITERASI SD",difficulty:"easy",type:"single",stimulus:"Hutan bakau atau mangrove memiliki peran vital bagi keseimbangan ekosistem pesisir. Akar-akar pohon bakau yang kuat mampu memecah ombak besar sehingga dapat mencegah abrasi pantai. Selain itu, hutan bakau menjadi tempat tinggal yang aman bagi berbagai biota laut seperti kepiting, udang, dan ikan kecil untuk memijah. Keberadaan hutan ini juga membantu menyerap karbon dioksida dalam jumlah besar dari atmosfer bumi.",text:"Objek utama yang dibahas secara mendalam pada teks tersebut adalah ....",options:["Cara budidaya ikan di pesisir pantai","Pemanfaatan kayu bakau untuk bahan bangunan","Manfaat dan fungsi hutan bakau bagi lingkungan","Dampak negatif ombak besar terhadap pemukiman"],correct:["Manfaat dan fungsi hutan bakau bagi lingkungan"]},
+                {id:"sd_l_3",category:"LITERASI SD",difficulty:"easy",type:"single",stimulus:"Menjaga kebersihan tangan adalah cara paling efektif untuk mencegah penularan penyakit. Langkah pertama yang harus dilakukan adalah membasahi tangan dengan air bersih yang mengalir. Setelah itu, gunakan sabun secukupnya dan gosoklah seluruh bagian tangan mulai dari telapak, punggung tangan, hingga sela-sela jari minimal selama 20 detik. Terakhir, bilas kembali dengan air mengalir dan keringkan menggunakan tisu sekali pakai atau handuk bersih.",text:"Waktu minimal yang disarankan untuk menggosok seluruh bagian tangan dengan sabun adalah ....",options:["10 detik","15 detik","20 detik","30 detik"],correct:["20 detik"]},
+                {id:"sd_l_4",category:"LITERASI SD",difficulty:"easy",type:"single",stimulus:"Hari itu hujan turun sangat deras membasahi seluruh kota. Satria melihat seorang kakek penjual kerupuk berteduh di bawah emperan toko sambil menggigil kedinginan. Dagangannya masih terlihat penuh karena belum laku sama sekali. Tanpa banyak bicara, Satria mendekat dan membeli sepuluh bungkus kerupuk meski ia sendiri sebenarnya tidak terlalu suka makan kerupuk. Satria hanya ingin kakek itu bisa segera pulang dan beristirahat karena uangnya sudah cukup.",text:"Alasan utama Satria membeli kerupuk dalam jumlah banyak adalah ....",options:["Karena Satria sangat menyukai rasa kerupuk tersebut","Agar Satria mendapatkan pujian dari orang di sekitar toko","Karena Satria merasa lapar saat sedang menunggu hujan reda","Untuk membantu kakek penjual agar bisa cepat pulang"],correct:["Untuk membantu kakek penjual agar bisa cepat pulang"]},
+                {id:"sd_l_5",category:"LITERASI SD",difficulty:"easy",type:"single",stimulus:"Kecerdasan buatan atau Artificial Intelligence (AI) telah membawa perubahan besar dalam dunia pendidikan kita dewasa ini. Dengan AI, guru dapat menciptakan materi pembelajaran yang lebih personal bagi setiap siswa. Selain itu, siswa juga bisa mendapatkan umpan balik secara otomatis ketika mengerjakan soal latihan sehingga mereka tahu letak kesalahannya dengan cepat. Teknologi ini sungguh membantu proses belajar menjadi lebih efisien.",text:"Ide pokok yang terkandung dalam paragraf tersebut adalah ....",options:["Cara menggunakan AI untuk mengerjakan tugas sekolah","Dampak positif kecerdasan buatan dalam pendidikan","Perbedaan antara guru manusia dengan teknologi AI","Kelemahan sistem pembelajaran konvensional di kelas"],correct:["Dampak positif kecerdasan buatan dalam pendidikan"]},
+                {id:"sd_l_6",category:"LITERASI SD",difficulty:"easy",type:"single",stimulus:"Seekor burung gagak sedang kehausan di tengah padang pasir. Ia menemukan sebuah kendi yang berisi sedikit air di dasarnya. Paruh gagak tidak cukup panjang untuk mencapai air itu. Awalnya ia putus asa, namun kemudian ia melihat banyak batu kerikil di sekitarnya. Gagak memasukkan kerikil tersebut satu per satu ke dalam kendi. Perlahan namun pasti, permukaan air naik hingga ke leher kendi dan gagak pun bisa minum dengan puas.",text:"Amanat yang paling tepat dari cerita tersebut adalah ....",options:["Kita harus mencari bantuan orang lain saat sedang kesulitan","Kesabaran dan kecerdikan dalam menghadapi masalah akan membuahkan hasil","Jangan pernah pergi ke padang pasir sendirian tanpa membawa air","Barang yang terlihat tidak berguna terkadang bisa menyusahkan kita"],correct:["Kesabaran dan kecerdikan dalam menghadapi masalah akan membuahkan hasil"]},
+                {id:"sd_l_7",category:"LITERASI SD",difficulty:"easy",type:"single",stimulus:"Energi fosil seperti batu bara dan minyak bumi bersifat terbatas dan menghasilkan emisi karbon yang tinggi. Jika manusia terus bergantung sepenuhnya pada energi fosil, pemanasan global akan semakin parah dan sumber energi tersebut akan habis dalam beberapa dekade mendatang. Oleh karena itu, peralihan ke energi terbarukan seperti panel surya dan kincir angin sangat mendesak untuk dilakukan demi menjaga kelangsungan bumi yang kita cintai ini.",text:"Berdasarkan informasi tersebut, hal yang kemungkinan besar akan terjadi jika manusia tidak segera beralih ke energi terbarukan adalah ....",options:["Harga panel surya akan menjadi sangat mahal di masa depan","Keseimbangan alam terganggu akibat peningkatan suhu bumi","Batu bara akan berubah menjadi sumber energi yang bersih","Kincir angin tidak akan lagi digunakan oleh masyarakat"],correct:["Keseimbangan alam terganggu akibat peningkatan suhu bumi"]},
+                {id:"sd_l_8",category:"LITERASI SD",difficulty:"easy",type:"single",stimulus:"Teks 1: Andi selalu menyiapkan segala sesuatu jauh-jauh hari. Sebelum pergi berkemah, ia mencatat daftar peralatan dan memeriksanya dua kali agar tidak ada yang tertinggal. \nTeks 2: Berbeda dengan Andi, Budi lebih suka bertindak spontan. Ia seringkali baru mengemas tasnya beberapa menit sebelum berangkat, yang terkadang membuatnya lupa membawa barang penting seperti senter atau obat-obatan P3K.",text:"Perbedaan karakteristik antara tokoh Andi dan Budi yang paling tepat adalah ....",options:["Andi sangat ambisius sedangkan Budi sangat tenang","Andi orang yang disiplin sedangkan Budi orang yang ceroboh","Andi suka memerintah sedangkan Budi suka menuruti perintah","Andi bersifat tertutup sedangkan Budi bersifat terbuka"],correct:["Andi orang yang disiplin sedangkan Budi orang yang ceroboh"]},
+                {id:"sd_l_9",category:"LITERASI SD",difficulty:"easy",type:"single",stimulus:"Matahari perlahan tenggelam di ufuk barat, meninggalkan rona jingga di langit yang mulai meredup dengan perlahan. Suara jangkrik mulai bersahutan di balik semak-semak yang rimbun. Angin sepoi-sepoi membelai dedaunan, menciptakan melodi alam yang menenangkan jiwa. Di bangku taman yang sepi, Pak Tua itu duduk terdiam sambil memandangi foto lama dengan senyum kecil di sudut bibirnya.",text:"Latar suasana yang digambarkan dalam kutipan cerita tersebut adalah ....",options:["Tegang dan penuh ketakutan","Sunyi dan penuh kesedihan","Tenang dan penuh kedamaian","Ramai dan penuh kegembiraan"],correct:["Tenang dan penuh kedamaian"]},
+                {id:"sd_l_10",category:"LITERASI SD",difficulty:"easy",type:"single",stimulus:"Para ilmuwan dari berbagai belahan dunia sedang melakukan [...] secara masif untuk menemukan vaksin baru yang lebih efektif melawan virus varian terbaru. Mereka bekerja siang dan malam di laboratorium dengan ketelitian yang sangat tinggi agar hasil yang didapatkan sungguh akurat dan aman bagi masyarakat luas.",text:"Kata baku yang tepat untuk melengkapi bagian rumpang tersebut adalah ....",options:["Analisa","Praktek","Penelitian","Resiko"],correct:["Penelitian"]},
+                {id:"sd_l_11",category:"LITERASI SD",difficulty:"medium",type:"single",stimulus:"Kawah Ijen yang terletak di perbatasan Kabupaten Banyuwangi dan Kabupaten Bondowoso memiliki daya tarik unik berupa api biru atau 'blue fire'. Fenomena langka ini hanya bisa dilihat pada dini hari sebelum matahari menampakkan sinarnya. Selain api biru, pengunjung juga dapat melihat aktivitas para penambang belerang yang memikul beban berat menaiki dan menuruni tebing kawah yang sangat curam setiap hari.",text:"Fenomena unik 'blue fire' di Kawah Ijen hanya dapat disaksikan pada waktu ....",options:["Siang hari saat matahari terik","Sore hari menjelang matahari terbenam","Dini hari sebelum matahari terbit","Malam hari tepat pada jam dua belas"],correct:["Dini hari sebelum matahari terbit"]},
+                {id:"sd_l_12",category:"LITERASI SD",difficulty:"medium",type:"single",stimulus:"Hujan asam terjadi ketika polutan udara seperti sulfur dioksida dan nitrogen oksida bereaksi dengan molekul air di atmosfer. Polutan berbahaya ini sebagian besar berasal dari asap pabrik industri dan pembuangan kendaraan bermotor. Ketika hujan turun, air tersebut membawa sifat asam yang dapat merusak bangunan berbahan logam, mematikan tanaman, serta mencemari sumber air bersih.",text:"Penyebab utama terjadinya hujan asam berdasarkan teks tersebut adalah ....",options:["Penguapan air laut yang terlalu berlebihan","Reaksi antara air atmosfer dengan polutan udara","Kurangnya tanaman hijau di daerah perkotaan","Suhu udara yang terlalu dingin di lapisan atmosfer"],correct:["Reaksi antara air atmosfer dengan polutan udara"]},
+                {id:"sd_l_13",category:"LITERASI SD",difficulty:"medium",type:"single",stimulus:"Tidur yang cukup sangat penting bagi pertumbuhan dan perkembangan anak-anak. Saat anak tidur nyenyak, tubuh memproduksi hormon pertumbuhan yang membantu memperbaiki sel-sel yang rusak. Selain itu, tidur yang berkualitas juga dapat meningkatkan daya konsentrasi dan daya ingat anak saat belajar di sekolah keesokan harinya. Oleh karena itu, orang tua harus selalu memastikan anak-anak mereka tidur minimal 8 jam setiap malam.",text:"Kalimat utama dari paragraf tersebut terletak pada ....",options:["Awal paragraf","Tengah paragraf","Akhir paragraf","Awal dan akhir paragraf"],correct:["Awal paragraf"]},
+                {id:"sd_l_14",category:"LITERASI SD",difficulty:"medium",type:"single",stimulus:"Pemerintah Kota Surabaya dengan bangga meresmikan gedung perpustakaan baru yang terletak tepat di pusat kota pada hari Senin kemarin. Gedung megah ini dilengkapi dengan berbagai fasilitas teknologi tinggi, termasuk ruang baca digital dan area khusus interaktif bagi anak-anak. Walikota sangat berharap perpustakaan ini dapat mendongkrak minat baca warga kota yang belakangan ini mulai menurun.",text:"Lokasi peresmian gedung perpustakaan baru tersebut berada di ....",options:["Pusat Kota Surabaya","Pinggiran Kota Surabaya","Kantor Gubernur Jawa Timur","Sekolah-sekolah di Surabaya"],correct:["Pusat Kota Surabaya"]},
+                {id:"sd_l_15",category:"LITERASI SD",difficulty:"medium",type:"single",stimulus:"Lani tidak sengaja menjatuhkan piala kesayangan kakaknya saat sedang membersihkan meja belajar di ruang tamu. Dada Lani berdegup kencang dan matanya mulai berkaca-kaca menyadari kesalahannya. Ia tahu betapa susahnya kakak berjuang keras untuk mendapatkan piala itu. Meskipun sangat takut akan dimarahi, Lani memutuskan untuk tidak menyembunyikan pecahan piala tersebut dan menemui kakaknya.",text:"Perasaan dominan yang dialami Lani saat peristiwa tersebut terjadi adalah ....",options:["Marah karena piala diletakkan di tempat yang tidak aman","Cemas dan merasa bersalah atas kejadian tersebut","Senang karena ia tidak perlu lagi membersihkan piala","Biasa saja karena piala bisa dibeli kembali di toko"],correct:["Cemas dan merasa bersalah atas kejadian tersebut"]},
+                {id:"sd_l_16",category:"LITERASI SD",difficulty:"medium",type:"single",stimulus:"Penggunaan plastik sekali pakai terus meningkat secara drastis setiap tahunnya, yang mengakibatkan penumpukan sampah mengerikan di dasar lautan. Banyak hewan laut yang malang mati karena tidak sengaja memakan sampah plastik yang mereka kira sebagai makanan alaminya. Jika pola konsumsi plastik yang buruk ini tidak diubah secepatnya, diperkirakan lautan kita akan menjadi tempat pembuangan raksasa.",text:"Kesimpulan yang paling tepat untuk merangkum teks tersebut adalah ....",options:["Plastik adalah bahan yang paling murah untuk diproduksi industri","Hewan laut harus belajar membedakan antara plastik dan makanan sungguhan","Perlu ada tindakan nyata untuk mengurangi penggunaan plastik secara global","Ikan di laut akan punah dengan sendirinya pada tahun 2050 mendatang"],correct:["Perlu ada tindakan nyata untuk mengurangi penggunaan plastik secara global"]},
+                {id:"sd_l_17",category:"LITERASI SD",difficulty:"medium",type:"single",stimulus:"Engkau adalah pelita dalam gelapku\nMenuntun langkah yang sering ragu\nDengan sabar kau goreskan ilmu\nDi atas kertas putih jiwaku\nTerima kasih kuucapkan untukmu, wahai pahlawan tanpa tanda jasa yang mulia.",text:"Kata 'pelita' dalam bait pertama puisi tersebut merupakan sebuah simbol dari ....",options:["Lampu minyak yang digunakan menerangi saat malam tiba","Orang yang dengan ikhlas memberikan petunjuk atau ilmu","Jalanan kehidupan yang sangat gelap dan penuh rintangan","Hadiah berharga yang harus diberikan kepada para guru"],correct:["Orang yang dengan ikhlas memberikan petunjuk atau ilmu"]},
+                {id:"sd_l_18",category:"LITERASI SD",difficulty:"medium",type:"single",stimulus:"Tradisi gotong royong masih sangat kental dan terus dilestarikan di Desa Sukamaju. Saat ada salah satu warga yang ingin membangun rumah baru, warga lainnya secara sukarela akan datang membantu tanpa mengharapkan imbalan uang sedikit pun. Mereka berbagi tugas dengan adil, mulai dari mengangkut bahan bangunan hingga menyajikan makanan bagi pekerja. Hal ini benar-benar membuat pekerjaan berat terasa ringan.",text:"Nilai sosial luhur yang paling menonjol dari tradisi gotong royong tersebut adalah ....",options:["Persaingan ketat antarwarga untuk menjadi yang terbaik di desa","Kepedulian yang tinggi dan eratnya rasa kebersamaan dalam bermasyarakat","Keinginan untuk mendapatkan upah makanan yang enak","Sikap ketergantungan warga desa terhadap bantuan dari dana pemerintah"],correct:["Kepedulian yang tinggi dan eratnya rasa kebersamaan dalam bermasyarakat"]},
+                {id:"sd_l_19",category:"LITERASI SD",difficulty:"medium",type:"single",stimulus:"Teman-teman sekalian yang saya banggakan, marilah kita mulai hari ini juga untuk mengurangi penggunaan gadget yang terlalu berlebihan. Waktu masa muda kita ini sangatlah berharga jika hanya dihabiskan untuk bermain game berjam-jam lamanya. Gunakanlah sisa waktu luang yang kita miliki untuk membaca buku atau rajin berolahraga agar tubuh menjadi jauh lebih sehat.",text:"Tujuan utama dari disampaikannya penggalan teks pidato persuasif tersebut adalah ....",options:["Melarang keras teman-teman untuk membeli gadget kuaran terbaru","Mengajak dengan sungguh-sungguh untuk melakukan kegiatan yang jauh lebih bermanfaat","Memberitahukan tutorial dan cara jitu bermain game online yang benar","Meminta seluruh teman-teman untuk rajin menabung uang jajannya"],correct:["Mengajak dengan sungguh-sungguh untuk melakukan kegiatan yang jauh lebih bermanfaat"]},
+                {id:"sd_l_20",category:"LITERASI SD",difficulty:"medium",type:"single",stimulus:"Bunglon memiliki kemampuan adaptasi unik yang dikenal luas dengan sebutan mimikri. Ia dapat dengan cepat mengubah warna kulitnya agar sesuai dan menyatu dengan kondisi lingkungan sekitar. Tujuannya adalah untuk mengelabui mangsa buruannya maupun sembunyi dari pemangsa. Selain kemampuan tersebut, bunglon juga memiliki struktur mata yang dapat berputar secara bebas 360 derajat.",text:"Kemampuan alami luar biasa bunglon untuk mengubah warna kulitnya dinamakan ....",options:["Ekolokasi","Mimikri","Autotomi","Hibernasi"],correct:["Mimikri"]},
+                {id:"sd_l_21",category:"LITERASI SD",difficulty:"medium",type:"single",stimulus:"Dari hasil pengamatan biologi selama kurang lebih satu minggu, biji kacang hijau yang diletakkan di area tempat terang terpapar sinar tumbuh lebih pendek, namun ia memiliki batang yang sangat kokoh dan warna daun hijau yang begitu segar. Sebaliknya, biji yang diletakkan di tempat gelap tertutup akan tumbuh dengan sangat cepat dan tinggi, tetapi sayangnya batangnya sangat lemah dan daunnya menguning.",text:"Berdasarkan hasil eksperimen pengamatan tersebut, cahaya matahari terbukti sangat berpengaruh terhadap ....",options:["Kecepatan perkecambahan biji kacang hijau saat ditanam","Kualitas warna daun dan tingkat kekuatan batang tanaman tersebut","Jumlah biji kacang yang dapat tumbuh berdesakan dalam satu wadah","Rasa manis dari kacang hijau yang akan dihasilkan saat panen tiba"],correct:["Kualitas warna daun dan tingkat kekuatan batang tanaman tersebut"]},
+                {id:"sd_l_22",category:"LITERASI SD",difficulty:"medium",type:"single",stimulus:"Pada hari Jumat bersejarah tanggal 17 Agustus 1945, Bapak Ir. Soekarno yang didampingi langsung oleh Drs. Mohammad Hatta membacakan teks proklamasi kemerdekaan Republik Indonesia yang bertempat di Jalan Pegangsaan Timur Nomor 56, Jakarta Pusat. Peristiwa membanggakan ini menandai lahirnya secara resmi bangsa Indonesia yang berdaulat secara utuh setelah dijajah bertahun-tahun.",text:"Tokoh proklamator yang mendampingi Ir. Soekarno dalam momen pembacaan teks tersebut adalah ....",options:["Sutan Sjahrir","Mohammad Hatta","Achmad Soebardjo","Sayuti Melik"],correct:["Mohammad Hatta"]},
+                {id:"sd_l_23",category:"LITERASI SD",difficulty:"medium",type:"single",stimulus:"Pertandingan laga final sepak bola antarkelas, yakni kelas 6A berhadapan dengan 6B, berlangsung sengit di lapangan rumput sekolah pada pukul 15.00 WIB sore tadi. Pertandingan yang berjalan alot tersebut akhirnya usai dengan skor tipis 2-1 untuk kemenangan telak kelas 6A. Menurut sebagian besar penonton yang hadir, pertandingan tersebut adalah pertandingan paling seru dan mendebarkan yang pernah ada di sekolah tahun ini.",text:"Bagian dari kalimat berikut ini manakah yang merupakan opini subjektif dari penulis teks?",options:["Pertandingan sepak bola berlangsung di lapangan sekolah pukul 15.00 WIB","Skor akhir dari pertandingan tersebut adalah 2-1 untuk kemenangan kelas 6A","Pertandingan tersebut dinilai sebagai pertandingan yang paling seru tahun ini","Tim utama yang bertanding di babak final adalah anak kelas 6A dan kelas 6B"],correct:["Pertandingan tersebut dinilai sebagai pertandingan yang paling seru tahun ini"]},
+                {id:"sd_l_24",category:"LITERASI SD",difficulty:"medium",type:"single",stimulus:"Langkah-langkah menyalakan unit komputer desktop dengan benar:\n(1) Tekan secara perlahan tombol power yang terdapat pada casing CPU.\n(2) Pastikan seluruh kabel power sudah terhubung dengan aman ke stopkontak listrik.\n(3) Tunggu beberapa saat hingga proses booting sistem selesai dan muncul layar utama desktop.\n(4) Tekan saklar tombol power pada bagian bawah layar monitor.",text:"Urutan langkah-langkah yang paling tepat dan logis untuk menyalakan komputer adalah ....",options:["2-1-4-3","2-4-1-3","1-2-4-3","4-2-1-3"],correct:["2-1-4-3"]},
+                {id:"sd_l_25",category:"LITERASI SD",difficulty:"medium",type:"single",stimulus:"Susu merek 'Segar Sehat' berasal langsung dari perahan sapi pilihan unggulan yang dipelihara secara alami dan organik di padang rumput hijau. Minuman ini sangat kaya akan kandungan kalsium murni untuk memperkuat jaringan tulang Anda dan diproses mutlak tanpa menggunakan bahan pengawet kimiawi sehingga sangat terjamin aman dikonsumsi setiap hari. Rasakan sensasi kesegaran alami di setiap tegukannya!",text:"Keunggulan utama yang ditawarkan oleh produk susu menurut teks iklan komersial tersebut adalah ....",options:["Memiliki puluhan varian rasa buah-buahan yang disukai anak-anak","Menawarkan harga jual yang paling murah dibandingkan semua merk saingan","Kaya akan kalsium untuk tulang dan dijamin tanpa menggunakan pengawet","Hanya boleh dikonsumsi oleh anak-anak balita"],correct:["Kaya akan kalsium untuk tulang dan dijamin tanpa menggunakan pengawet"]},
+                {id:"sd_l_26",category:"LITERASI SD",difficulty:"hard",type:"multiple",stimulus:"Menanam pepohonan rimbun di area sekitar lingkungan rumah kita akan mendatangkan banyak sekali manfaat positif yang tak terhingga. Pohon memproduksi oksigen secara terus menerus yang membuat udara sekitar menjadi jauh lebih bersih dan segar, sekaligus ampuh menyaring polusi asap buang kendaraan yang berbahaya. Selain itu, jaringan akar pohon yang mencengkeram kuat sangat membantu menyerap genangan air hujan ke lapisan dalam tanah sehingga hal ini merupakan langkah efektif mencegah meluapnya air yang mengakibatkan bencana banjir rutin.",text:"Berdasarkan penjabaran pada teks di atas, manakah pernyataan berikut ini yang benar mengenai ragam manfaat dari menanam pohon? (Pilih dua jawaban yang paling tepat!)",options:["Pohon dapat meningkatkan konsentrasi polusi udara di sekitar pekarangan rumah","Akar pohon memiliki peran vital yang sangat penting dalam mencegah terjadinya bencana banjir","Sirkulasi udara akan menjadi lebih segar karena daun pohon selalu menghasilkan oksigen","Menanam banyak pohon di pekarangan justru membuat suhu udara menjadi panas dan pengap"],correct:["Akar pohon memiliki peran vital yang sangat penting dalam mencegah terjadinya bencana banjir","Sirkulasi udara akan menjadi lebih segar karena daun pohon selalu menghasilkan oksigen"]},
+                {id:"sd_l_27",category:"LITERASI SD",difficulty:"hard",type:"multiple",stimulus:"Buku fiksi terbaru yang berjudul 'Petualangan Si Kancil Modern' memiliki jalinan alur cerita yang sangat menarik, interaktif, dan penuh dengan bumbu teka-teki sehingga para pembacanya dijamin tidak akan mudah merasa kebosanan. Ilustrasi gambar cetaknya pun disajikan dengan warna-warni cerah yang memanjakan mata dan sangat mendetail. Namun sangat disayangkan, penulis nampaknya memasukkan beberapa penggunaan daftar kosakata sastra tingkat tinggi yang dinilai terlalu sulit untuk dapat dipahami oleh target pembaca anak usia sekolah dasar, ditambah lagi dengan ukuran pilihan huruf (font) yang digunakan dalam buku cetak tersebut terlampau kecil untuk standar anak-anak.",text:"Manakah sekumpulan pernyataan di bawah ini yang secara akurat merupakan kritik atau kelemahan dari buku cerita tersebut berdasarkan teks resensi di atas? (Pilihlah semua jawaban yang menurut Anda benar!)",options:["Alur ceritanya dinilai membosankan dan terlalu mudah ditebak alurnya dari awal","Terdapat kosakata bahasa yang cenderung terlalu sulit untuk dipahami oleh pembaca anak-anak","Ukuran huruf yang dicetak di dalam halaman buku tersebut dianggap terlalu kecil","Ilustrasi gambar visual yang dicetak di dalam buku dinilai kurang menarik dan terkesan sangat pucat"],correct:["Terdapat kosakata bahasa yang cenderung terlalu sulit untuk dipahami oleh pembaca anak-anak","Ukuran huruf yang dicetak di dalam halaman buku tersebut dianggap terlalu kecil"]},
+                {id:"sd_l_28",category:"LITERASI SD",difficulty:"hard",type:"multiple",stimulus:"Bu Indah adalah sosok guru pengampu mata pelajaran matematika kebanggaan kelas kami. Beliau berhati emas dan sama sekali tidak pernah sekalipun marah atau menunjukkan raut wajah kesal meskipun kami di kelas sering menanyakan pertanyaan hal yang sama berulang-ulang kali karena kurang paham. Beliau akan selalu rela menjelaskannya kembali dengan perlahan, sabar, dan memberikan banyak contoh sederhana hingga kami berhasil memahaminya. Sebagai tambahan dedikasinya, beliau juga tidak pernah absen untuk selalu datang tepat waktu, bahkan selalu ada di meja kelas sebelum bel tanda masuk sekolah resmi dibunyikan oleh petugas.",text:"Sifat-sifat positif dan teladan apa sajakah yang nyata dimiliki oleh tokoh Bu Indah berdasarkan pemaparan teks cerita di atas? (Pilihlah dua jawaban yang paling mencerminkan hal tersebut!)",options:["Sosok pendidik yang teramat Penyabar","Seseorang yang sangat memegang teguh sikap Disiplin","Tipe guru yang cenderung Tegas dan sangat Kaku","Cepat terpancing emosi dan berwatak Pemarah"],correct:["Sosok pendidik yang teramat Penyabar","Seseorang yang sangat memegang teguh sikap Disiplin"]},
+                {id:"sd_l_29",category:"LITERASI SD",difficulty:"hard",type:"multiple",stimulus:"Susunan sistem tata surya kita yang maha luas ini terdiri dari satu bintang induk, yakni Matahari yang berada tepat sebagai pusat rotasinya, serta delapan planet utuh yang terus mengelilinginya dalam orbitnya masing-masing. Planet dengan jarak orbit yang menempati posisi paling dekat secara langsung dengan panasnya Matahari adalah Merkurius, sementara planet yang berada di sisi terluar dan paling jauh letaknya adalah planet es Neptunus. Dalam hal ukuran fisik, planet Jupiter berhasil menduduki peringkat sebagai planet gas raksasa yang ukurannya paling besar di seluruh jajaran tata surya kita, sedangkan di sisi lain, planet Saturnus cukup populer karena dikenal luas sebagai satu-satunya planet yang memiliki sistem cincin debu antariksa yang paling indah dan terlihat sangat jelas.",text:"Tentukan secara cermat manakah dari pernyataan-pernyataan astronomi berikut ini yang dinilai bernilai BENAR sesuai dengan bacaan di atas! (Pilihlah semua jawaban yang dianggap tepat!)",options:["Merkurius merupakan sebuah planet yang titik letaknya berada paling jauh dari pusat Matahari.","Planet Jupiter menduduki status sebagai planet dengan bentang ukuran paling besar di seluruh tata surya.","Planet Saturnus sangat dikenal luas memiliki sistem cincin yang luar biasa indah dan dapat terlihat dengan sangat jelas.","Matahari secara teknis diklasifikasikan sebagai salah satu jenis planet yang juga ada di dalam galaksi tata surya."],correct:["Planet Jupiter menduduki status sebagai planet dengan bentang ukuran paling besar di seluruh tata surya.","Planet Saturnus sangat dikenal luas memiliki sistem cincin yang luar biasa indah dan dapat terlihat dengan sangat jelas."]},
+                {id:"sd_l_30",category:"LITERASI SD",difficulty:"hard",type:"multiple",stimulus:"Edo dari kejauhan melihat Dika hanya terduduk diam membisu di sudut pojok kelas saat jam istirahat siang berbunyi, sementara para teman-teman yang lain sedang sibuk berkumpul dan memakan bekal makan siang mereka masing-masing. Edo secara tak sengaja tahu dari ibunya bahwa orang tua Dika belakangan ini baru saja terkena suatu musibah sehingga ibu Dika mungkin sedang kerepotan dan sama sekali tidak sempat menyiapkan bekal makan siang untuk anaknya hari ini. Merasa kasihan, Edo pun berinisiatif menghampiri meja Dika dan tanpa ragu membagi tepat separuh porsi nasi goreng lezat dari kotak bekalnya. 'Ayo makanlah bersama denganku saja, Dika. Hari ini Ibuku rupanya membawakanku porsi yang terlalu banyak, aku tak sanggup menghabiskannya sendirian,' kata Edo berbohong dengan tujuan mulia agar temannya, Dika, tidak perlu merasa malu atau sungkan untuk menerima pemberiannya.",text:"Pernyataan analitis di bawah ini, manakah saja yang paling akurat dalam menggambarkan nilai-nilai budi pekerti yang terkandung dalam potongan cerita tersebut? (Pilihlah semua jawaban konklusif yang benar!)",options:["Edo secara jelas telah menunjukkan sikap rasa empati yang mendalam terhadap kesulitan kondisi yang menimpa temannya.","Edo terpaksa berbohong secara sengaja demi sebuah kebaikan kecil agar harga diri Dika terjaga dan tidak merasa malu di depan orang lain.","Dika secara terang-terangan dan terus menerus mendesak serta meminta paksa makanan dari kotak bekal Edo karena ia merasa sangat lapar hari itu.","Tindakan inisiatif tolong-menolong terhadap kesulitan sesama antarteman yang ditunjukkan adalah contoh mutlak perbuatan yang terpuji."],correct:["Edo secara jelas telah menunjukkan sikap rasa empati yang mendalam terhadap kesulitan kondisi yang menimpa temannya.","Edo terpaksa berbohong secara sengaja demi sebuah kebaikan kecil agar harga diri Dika terjaga dan tidak merasa malu di depan orang lain.","Tindakan inisiatif tolong-menolong terhadap kesulitan sesama antarteman yang ditunjukkan adalah contoh mutlak perbuatan yang terpuji."]}
+            ],
+            SMP: [
+                // === NUMERASI SMP (30 SOAL) ===
+                {id:"smp_n_1",category:"NUMERASI SMP",difficulty:"easy",type:"single",stimulus:"Badan Antariksa Nasional sedang merencanakan misi pengiriman sebuah armada satelit komunikasi terbarunya yang dilengkapi panel surya canggih. Menurut hasil perhitungan para ahli astronomi dan astrofisika di pusat pemantauan, jarak rata-rata dari permukaan bumi ke lokasi tempat sebuah satelit geostasioner tersebut akan diluncurkan adalah berada di kisaran angka sekitar 36.000.000 meter jauhnya di atas atmosfer. Dalam pembuatan setiap dokumen laporan teknis resmi kenegaraan yang akan dipublikasikan, angka-angka bernilai besar seperti jarak ini biasanya diwajibkan untuk dituliskan dalam sebuah format baku yang dikenal dengan bentuk notasi ilmiah guna memudahkan proses perhitungan matematika dan pembacaan data koordinat oleh sesama ilmuwan.",text:"Penulisan jarak posisi satelit di luar angkasa tersebut dalam bentuk baku kaidah notasi ilmiah matematika yang paling tepat adalah ....",options:["3,6 x 10^6 meter","3,6 x 10^7 meter","36 x 10^6 meter","0,36 x 10^8 meter"],correct:["3,6 x 10^7 meter"]},
+                {id:"smp_n_2",category:"NUMERASI SMP",difficulty:"easy",type:"single",stimulus:"Sebuah ember plastik penampungan cadangan air yang terbuat dari bahan tebal memiliki kapasitas volume tampung maksimal mencapai 20 liter jika diisi hingga rata dengan bibir atas ember. Suatu sore, ember kosong tersebut mulai diisi dengan air menggunakan bantuan sebuah keran pipa yang memiliki spesifikasi kekuatan debit keluaran air yang konstan sebesar 2 liter setiap satu menit berlalu. Pemilik rumah harus secara cermat mengawasi laju pengisian ember yang dilakukan dengan kecepatan aliran yang sangat stabil ini agar air di dalamnya sama sekali tidak tumpah membasahi area lantai rumah.",text:"Perkiraan hitungan total waktu yang secara teknis dibutuhkan untuk menyelesaikan pengisian air ke dalam ember kosong tersebut hingga batas penuhnya adalah ....",options:["5 menit","10 menit","20 menit","40 menit"],correct:["10 menit"]},
+                {id:"smp_n_3",category:"NUMERASI SMP",difficulty:"easy",type:"single",stimulus:"Di dalam suatu suasana kelas mata pelajaran matematika yang sedang membahas bab geometri secara intensif, seorang Bapak Guru yang sangat berpengalaman tengah mengajarkan kepada murid-muridnya beragam cara kilat untuk menghitung luasan bidang bangun datar dan volume dari bangun ruang tiga dimensi sederhana. Sebelum menutup kelas hari itu, ia memberikan tugas kecil dan secara tegas meminta seluruh siswa di kelasnya untuk selalu mampu mengingat serta membedakan formula rumus baku tersebut di luar kepala sebelum menghadapi rangkaian ujian akhir semester yang akan dimulai besok pagi harinya tanpa boleh membuka buku catatan lagi.",text:"Dari daftar tabel berikut ini, coba perhatikan pasangan nama geometri bangun ruang atau bangun datar beserta rumusnya. Manakah salah satu pasangan berikut yang secara matematis dinilai paling TEPAT dan tidak ada kesalahan penulisan rumus?",options:["Rumus Keliling sebuah lingkaran utuh = panjang x lebar","Rumus Luas bangun datar persegi panjang = 2 x pi x r","Rumus Volume untuk sebuah bangun kerucut padat = 1/3 x pi x r^2 x t","Rumus Luas luasan segitiga siku-siku = sisi x sisi"],correct:["Rumus Volume untuk sebuah bangun kerucut padat = 1/3 x pi x r^2 x t"]},
+                {id:"smp_n_4",category:"NUMERASI SMP",difficulty:"easy",type:"single",stimulus:"Cairan organik eco-enzyme merupakan sebuah inovasi cairan pembersih serbaguna yang dihasilkan dari proses fermentasi jangka panjang bahan-bahan sisa limbah dapur organik di rumah tangga. Berdasarkan resep sukses yang banyak digunakan, rasio perbandingan campuran bahan yang paling ideal dan sempurna untuk membuat sebotol eco-enzyme yang berhasil adalah 1 bagian gula merah organik, berbanding 3 bagian sisa kulit buah atau potongan sayuran segar, berbanding 10 bagian air putih bersih (1 : 3 : 10). Pada suatu kegiatan praktik ekstrakurikuler di sekolah, seorang siswa yang sangat antusias ingin memanfaatkan tepat 450 gram sisa kulit jeruk yang baru saja ia kumpulkan dari area kantin sekolah pagi itu.",text:"Dengan berpedoman ketat pada panduan rasio takaran resep tersebut, berapa jumlah total miligram (atau gram) air putih bersih yang secara proporsional mutlak harus disiapkan oleh siswa cerdas tersebut?",options:["1.350 gram air","1.500 gram air","4.500 gram air","3.000 gram air"],correct:["1.500 gram air"]},
+                {id:"smp_n_5",category:"NUMERASI SMP",difficulty:"easy",type:"single",stimulus:"Area lahan sebuah taman bermain kota yang berbentuk kotak persegi panjang secara resmi membentang dengan ukuran panjang luar 10 meter dikali lebar luar 8 meter akan segera direnovasi oleh pihak dewan kota. Berdasarkan cetak biru rancangannya, persis di area sekeliling batas bagian dalam pagar taman tersebut seluruhnya akan dibangun sebuah jalan setapak bagi pengunjung yang akan dilapisi menggunakan susunan batu paving block dengan patokan lebar sisi jalan tetap sebesar 1 meter, sementara area lahan sisa yang berada persis di bagian tengah jalan setapak akan dipertahankan agar tetap berupa hamparan rumput hijau segar untuk tempat bersantai.",text:"Perhitungkanlah secara detail, berapakah sisa total luas area tanah yang pada akhirnya akan sepenuhnya ditutupi secara merata oleh material susunan batu paving block pembuat jalan setapak tersebut?",options:["32 meter persegi","36 meter persegi","80 meter persegi","48 meter persegi"],correct:["32 meter persegi"]},
+                {id:"smp_n_6",category:"NUMERASI SMP",difficulty:"easy",type:"single",stimulus:"Seorang anggota tim ahli dari lembaga peneliti kualitas lingkungan hidup rutin setiap pagi mencatat suhu udara harian yang menyelimuti wilayah kanopi sebuah kawasan hutan lindung selama masa satu minggu pengamatan penuh. Dari catatan laporannya, untaian deretan data spesifik mengenai fluktuasi suhu dalam takaran derajat Celcius yang telah berhasil tercatat adalah: hari pertama 22, kemudian 25, 21, merangkak ke 28, naik ke 30, lalu turun drastis ke 24, dan terakhir 23. Perubahan jarak rentang suhu yang ekstrem ini dapat sangat signifikan dalam hal dampaknya mempengaruhi kelembapan nutrisi tanah di area lindung tersebut.",text:"Besaran angka Jangkauan (range atau selisih data tertinggi dikurangi terendah) dari seluruh kumpulan data angka suhu udara yang tercatat terekam penuh selama satu minggu pengamatan lapangan tersebut adalah ....",options:["7 derajat Celcius","8 derajat Celcius","9 derajat Celcius","10 derajat Celcius"],correct:["9 derajat Celcius"]},
+                {id:"smp_n_7",category:"NUMERASI SMP",difficulty:"easy",type:"single",stimulus:"Dalam ajang demokrasi pemilihan pengurus baru ketua OSIS SMP Negeri, rapat komite panitia menyatakan secara tertulis bahwa hingga tahap akhir seleksi ini terdapat tepat 3 orang kandidat murid laki-laki dan 5 orang kandidat murid perempuan yang dipastikan telah memenuhi semua kriteria syarat unggulan yang ketat. Panitia kemudian memutuskan akan memilih satu orang kandidat dari kelompok ini dengan sistem undian secara benar-benar acak, transparan, dan tertutup untuk ditugaskan menjadi pembawa acara resmi pada saat perayaan debat penyampaian visi misi dimulai.",text:"Dengan menggunakan konsep perhitungan peluang, rasio peluang matematis agar tepat terpilihnya seorang kandidat berjenis kelamin laki-laki untuk mengemban tugas menjadi pembawa acara adalah ....",options:["3/5 bagian","3/8 bagian","5/8 bagian","1/3 bagian"],correct:["3/8 bagian"]},
+                {id:"smp_n_8",category:"NUMERASI SMP",difficulty:"easy",type:"single",stimulus:"Seorang guru memberikan tantangan memegang empat buah kartu cetak bilangan tebal kepada empat orang siswa berprestasi di kelasnya. Tercetak jelas pada masing-masing kartu-kartu tersebut berisi berbagai format deretan angka, yaitu: sebuah pecahan desimal bernilai 0,75; sebuah pecahan biasa senilai 4/5; sebuah format persentase senilai 70%; dan desimal lainnya senilai 0,85. Sang instruktur guru dengan tegas menantang para siswa terpilih tersebut untuk saling bertukar posisi dan berbaris berjajar secara urut, dimulai dari mereka yang memegang kartu dengan nilai hasil konversi terkecil hingga memegang nilai terbesar.",text:"Dari empat kombinasi di bawah ini, urutan posisi barisan siswa yang paling benar jika didasarkan secara murni pada perhitungan nilai kartu yang dipegang berurut mulai dari hasil konversi nilai bilangan paling kecil adalah ....",options:["70%; 0,75; 4/5; 0,85","0,75; 70%; 4/5; 0,85","70%; 4/5; 0,75; 0,85","4/5; 0,75; 70%; 0,85"],correct:["70%; 0,75; 4/5; 0,85"]},
+                {id:"smp_n_9",category:"NUMERASI SMP",difficulty:"easy",type:"single",stimulus:"Seorang murid siswa maju ke depan kelas dan secara iseng membuat coretan rentetan sebuah pola matematika deret angka yang sangat sederhana, namun beraturan, di papan tulis kapur: angka 5, diikuti 8, kemudian 11, berlanjut ke angka 14, ... dan seterusnya hingga tak terhingga. Menyadari hal tersebut, seorang guru menghampirinya dan meminta siswa itu untuk memecahkan sebuah rumus sederhana menemukan angka ke sekian sebagai cara latihan di kelas untuk memahami struktur pola konsep deret aritmetika dasar.",text:"Pecahkanlah rumusnya, berapakah bilangan angka yang sudah pasti akan muncul untuk menempati posisi pada urutan ke-10 berdasarkan ketetapan pola loncatan deret tersebut jika terus dilanjutkan oleh siswa?",options:["29","32","35","38"],correct:["32"]},
+                {id:"smp_n_10",category:"NUMERASI SMP",difficulty:"easy",type:"single",stimulus:"Dalam sebuah permainan simulasi ujian harian matematika, seorang guru mata pelajaran dengan sengaja mengubah nilai ujian milik seorang siswanya dengan sebuah rumus rahasia. Guru memberitahukan ke kelas bahwa: nilai siswa tersebut mula-mula telah secara khusus dikalikan dengan angka 2, lalu dari hasil perkaliannya tersebut barulah dikurangi dengan angka mutlak 5, dan pada tahap akhir dari proses itu menghasilkan skor akhir angka berupa 15. Guru memberikan kesempatan tebakan kuis kepada seluruh anggota teman sebangkunya di kelas untuk dapat mencari tahu dengan cerdik berapa sebenarnya nilai mentah asli dari siswa tersebut.",text:"Dengan menggunakan skema perhitungan mundur atau aljabar, berapakah sesungguhnya nilai ujian asli dari siswa yang bersangkutan tersebut sebelum dilakukan langkah-langkah manipulasi oleh sang guru?",options:["Nilai aslinya adalah 5","Nilai aslinya adalah 10","Nilai aslinya adalah 15","Nilai aslinya adalah 20"],correct:["Nilai aslinya adalah 10"]},
+                {id:"smp_n_11",category:"NUMERASI SMP",difficulty:"medium",type:"single",stimulus:"Siswa rajin bernama Andi baru saja sukses berlangganan sebuah aplikasi bimbingan paket belajar online selama periode promosi dengan menyetujui biaya pendaftaran awal member sebesar Rp 50.000,00 dan ditambah kewajiban membayar tagihan biaya tarif langganan bulanan di harga yang sama dan tetap. Tercatat setelah persis melewati periode masa pemakaian 4 bulan berjalan lamanya, lembar rekapitulasi total keseluruhan kumulatif biaya yang telah ditarik dari dompet Andi adalah menyentuh angka Rp 130.000,00.",text:"Seandainya kita mendefinisikan variabel 'x' bertindak sebagai indikator nilai besaran nominal biaya langganan yang ditarik per setiap satu bulan tagihan, maka model persamaan linear satu variabel yang memvisualisasikan situasi matematis di atas secara utuh adalah ....",options:["50.000 + 4x = 130.000","50.000x + 4 = 130.000","4x - 50.000 = 130.000","(50.000 + 4)x = 130.000"],correct:["50.000 + 4x = 130.000"]},
+                {id:"smp_n_12",category:"NUMERASI SMP",difficulty:"medium",type:"single",stimulus:"Mobil keluarga Budi terkenal sangat ramah lingkungan dan dilengkapi fasilitas tangki bensin yang cukup besar berkapasitas daya tampung maksimal menampung sebanyak 40 liter bahan bakar cair. Berdasarkan uji coba data pabrikan dan penggunaan harian, disimpulkan fakta bahwa untuk setiap menempuh trayek jarak jauh sejauh kelipatan 100 km, secara matematis mobil tangguh tersebut sudah dipastikan selalu rutin menghabiskan jatah 10 liter bensin secara stabil dan konstan. Menjelang libur sekolah, keluarga tangguh Budi telah berencana kuat akan melakukan ekspedisi perjalanan sangat jauh yaitu sejauh 250 km keluar kota yang dimulai dengan kondisi cadangan tangki awal yang sudah terisi sangat penuh bahan bakar.",text:"Gunakan kalkulasi matematis sederhana, perkirakanlah secara teliti berapa hitungan sisa bensin (dalam takaran liter) yang tersisa di dalam ruang tangki mobil tersebut sesaat setelah rombongan keluarga Budi berhasil menempuh tujuan perjalanan tersebut?",options:["Bensin tersisa sebanyak 25 liter","Bensin tersisa sebanyak 15 liter","Bensin tersisa sebanyak 10 liter","Bensin tersisa sebanyak 20 liter"],correct:["Bensin tersisa sebanyak 15 liter"]},
+                {id:"smp_n_13",category:"NUMERASI SMP",difficulty:"medium",type:"single",stimulus:"Dalam sebuah evaluasi hasil pembelajaran kelas 9A, ditemukan catatan bahwa skor nilai rata-rata dari ujian matematika wajib yang diikuti secara perdana oleh kelompok yang berjumlah 29 siswa adalah stabil di angka 75. Berselang satu minggu setelahnya, panitia guru memutuskan seorang siswa yang sedang sakit bernama Doni diperbolehkan mengikuti skema ujian susulan perbaikan. Ajaibnya, tepat setelah nilai ujian milik Doni diinput masuk dan resmi digabungkan ke data kelompok kelas, skor angka nilai rata-rata kelas tersebut langsung meningkat menjadi skor 75,5.",text:"Melalui penggunaan formula rumus hitung pergeseran rata-rata mean gabungan kelompok, selidikilah seberapa besar sebenarnya perolehan skor kuis nilai ujian yang sukses diraih sendiri secara mutlak oleh Doni?",options:["Skor nilai 85","Skor nilai 90","Skor nilai 95","Skor nilai 100"],correct:["Skor nilai 90"]},
+                {id:"smp_n_14",category:"NUMERASI SMP",difficulty:"medium",type:"single",stimulus:"Di deretan tribun lantai pertama sebuah gedung pusat pentas seni pertunjukan akbar, panitia menyusun instalasi barisan kursi-kursi penonton megah yang ditata rapi mengikuti skema pola penambahan matematis tertentu demi kelancaran pandangan ke panggung. Pada posisi persis di deret baris pertama bagian paling depan terlihat berisi 12 unit kursi, lanjut di deret baris kedua bertambah menjadi total 15 unit kursi, lalu di deret baris ketiga makin lebar dengan menampung 18 unit kursi, dan demikian tren pertambahan ini seterusnya akan selalu selaras konstan bertambah dengan sisa jumlah loncatan yang sama untuk setiap kemunduran struktur baris penonton di belakangnya. Telah diketahui gedung ini memiliki batasan fasilitas total hingga sebanyak maksimum 15 tingkatan baris kursi dari depan ke belakang.",text:"Sebutkan hasil kalkulasi akurat berapa unit banyaknya ketersediaan alokasi tempat duduk kursi yang sengaja dirancang khusus pada posisi tepat berada di lokasi baris paling mentok dan terakhir sendiri, yakni baris ke-15?",options:["Terdiri dari 51 kursi","Terdiri dari 54 kursi","Terdiri dari 57 kursi","Terdiri dari 60 kursi"],correct:["Terdiri dari 54 kursi"]},
+                {id:"smp_n_15",category:"NUMERASI SMP",difficulty:"medium",type:"single",stimulus:"Seorang ahli seniman pengrajin maket kerajinan tangan kelas wahid diundang untuk membuat dan mendesain miniatur arsitektur rumah idaman klasik yang terdiri dari struktur tumpukan padat dua wujud buah jenis bangun tiga dimensi. Pada struktur dasar di bagian lantai dasar menggunakan peraga pondasi sebuah badan balok kayu sebagai representasi wujud badan utama rumah utuh. Lalu tepat di lantai bagian puncaknya dimahkotai hiasan komponen pelengkap dengan menempatkan objek wujud bangun ruang limas berstruktur alas segiempat murni sebagai representasi bentukan atapnya yang megah meruncing. Rincian deskripsi spesifikasi cetak balok padat tersebut adalah memiliki dimensi luasan alas ukuran 10 cm x panjang 10 cm dan tinggi langit-langit pondasi sekitar 8 cm. Sementara menilik bagian limas (bagian atap) memiliki elevasi puncak tinggi tajam sekitar 6 cm berpadu dengan luas penampang alasnya yang diklaim sudah amat sangat presisi, identik, serta selaras serasi dengan penampang bidang tutup balok lantai dasarnya.",text:"Kalkulasikan hasil rumusan total akumulasi volume keseluruhan dimensi massa ukuran dari struktur bangun miniatur arsitektur rumah megah yang akhirnya selesai dibuat oleh pengrajin ahli tersebut dari tahap dasaran pondasi sampai ujung atap!",options:["Bervolume sebesar 800 cm kubik","Bervolume sebesar 1.000 cm kubik","Bervolume sebesar 1.200 cm kubik","Bervolume sebesar 1.400 cm kubik"],correct:["Bervolume sebesar 1.000 cm kubik"]},
+                {id:"smp_n_16",category:"NUMERASI SMP",difficulty:"medium",type:"single",stimulus:"Provider komunikasi unggulan seluler A pada awal masa kuartal perdananya terlihat menayangkan promo diskon paket data internet super cepat dengan volume kuota sebesar 12 GB senilai tunai Rp60.000,00 dan jaminan berlaku masa aktif penggunaan optimal 30 hari. Sementara tidak mau kalah, Provider saingan berat seluler B yang memiliki kualitas sama ikut meramaikan pasar menawarkan produk paket data jumbo volume lebih besar sebesar 15 GB dan ditawarkan lebih mahal sedikit seharga Rp70.000,00 dengan ketentuan jaminan durasi masa garansi aktif hari yang juga relatif tidak ada bedanya. Seseorang konsumen mahasiswa yang sangat jeli kini sedang duduk terdiam dan berhitung, ia berniat teguh ingin membeli sebuah paket yang terbukti paling berharga murah, ditinjau secara saksama menggunakan rasio pengeluaran per satu GB, demi melangsungkan efisiensi pendanaan kebutuhan belajar daringnya.",text:"Manakah simpulan rasional dari evaluasi hasil perbandingan murni rasio harga pengeluaran per GB tersebut, coba tunjukkan pernyataan dan analisis pembenaran manakah yang terbukti paling tepat dan valid?",options:["Provider A lebih murah karena harga per GB adalah Rp5.000,00","Provider B lebih murah karena harga per GB sekitar Rp4.666,00","Kedua provider memberikan harga per GB yang sama","Provider A lebih menguntungkan karena total harganya lebih rendah"],correct:["Provider B lebih murah karena harga per GB sekitar Rp4.666,00"]},
+                {id:"smp_n_17",category:"NUMERASI SMP",difficulty:"medium",type:"single",stimulus:"Citra pelajar cerdas berniat menabung sebagian hasil uang sisa beasiswa yang telah rutin ia kumpulkan sebesar modal awalan senilai Rp 2.000.000,00 untuk diamankan ke sebuah tabungan deposito bank daerah unggulan terdekat yang menawarkan suku bunga menggunakan metode konvensional skema jenis bunga perhitungan tunggal sebesar 6% per tahun. Citra telah merancang dengan sangat rinci rencana akan segera mencairkan dan mengambil semua sisa akumulasi modal pokok awal ditambahkan hasil saldo dari selisih kelipatan keseluruhan uangnya setelah deposit tabungannya resmi matang menginap selama 10 bulan penuh.",text:"Apabila seluruh dana diizinkan untuk diambil sesuai kesepakatan tertulis setelah melewati masa bulan matang yang dicanangkan tersebut, coba hitung akumulasi nominal total penerimaan kembali hak kepemilikan jumlah semua unit uang yang akhirnya akan masuk kembali ke tangan Citra?",options:["Citra menerima total uang sebanyak Rp2.100.000,00","Citra menerima total uang sebanyak Rp2.120.000,00","Citra menerima total uang sebanyak Rp2.060.000,00","Citra menerima total uang sebanyak Rp2.050.000,00"],correct:["Citra menerima total uang sebanyak Rp2.100.000,00"]},
+                {id:"smp_n_18",category:"NUMERASI SMP",difficulty:"medium",type:"single",stimulus:"Pemerintah dari dinas lingkungan hidup merilis laporan statistik penggunaan energi tahunan kota tersebut dalam satuan standar Terajoule (TJ). Laporan menyatakan angka mutlak diketahui bahwa alokasi seluruh pasokan beban kapasitas kekuatan cadangan keseluruhan suplai maksimal gabungan penyedotan listrik konsumsi energi yang dikonsumsi tahunan kota tersebut menyentuh angka 2.000 Terajoule (TJ). Dari porsi kue tabel pie-chart diagram yang diunggah, telah disoroti data secara eksplisit bahwa sektor perusahaan besar area industri manufaktur dan kawasan pabrikan secara agregat menggunakan porsi jatah sedotan alokasi serapan angka konsumsi mencapai angka mutlak sekitar 15% bagian dari seluruh kapasitas kota.",text:"Berdasarkan rujukan konversi data nilai Terajoule tersebut, berapakah jumlah energi yang dikonsumsi oleh sektor industri pada tahun ini?",options:["Konsumsi industri mengambil sebanyak 200 Terajoule","Konsumsi industri mengambil sebanyak 300 Terajoule","Konsumsi industri mengambil sebanyak 400 Terajoule","Konsumsi industri mengambil sebanyak 700 Terajoule"],correct:["Konsumsi industri mengambil sebanyak 300 Terajoule"]},
+                {id:"smp_n_19",category:"NUMERASI SMP",difficulty:"medium",type:"single",stimulus:"Sebuah rancangan tender agenda dari proyek perbaikan renovasi perluasan sarana gedung ruang sekolah dijadwalkan selesai dikerjakan tuntas sukses secara mulus dalam durasi tenggat lamanya pengerjaan waktu kalender 20 hari bekerja produktif dengan taksiran kondisi standar bilamana dilakukan pengerjaan harian berturut-turut dikerjakan oleh pekerja harian sebanyak 12 orang pekerja. Namun, karena suatu masalah mendadak merombak skema operasional konstruksi yang mewajibkan mutlak pembangunan selesai dalam durasi alokasi kerangka waktu dipercepat selama hanya 15 hari kalender saja.",text:"Hitunglah berapa orang pekerja tambahan baru yang mutlak harus segera diperbantukan keesokan harinya agar pembangunan tersebut dapat selesai tepat waktu?",options:["3 orang pekerja","4 orang pekerja","16 orang pekerja","8 orang pekerja"],correct:["4 orang pekerja"]},
+                {id:"smp_n_20",category:"NUMERASI SMP",difficulty:"medium",type:"single",stimulus:"Dalam peta perencanaan wilayah pemetaan tata ruang masterplan tata rupa sebuah pemetaan kawasan geografis pengembangan pembangunan provinsi, skala yang dipakai dipatok teguh secara konsisten oleh pihak perencana adalah menggunakan dan memakai rasio perbandingan skala geografi 1 : 250.000. Satuan standar parameter skala ini digunakan untuk membantu pekerjaan memperkirakan panjang jalur pipa air bersih yang menghubungkan dua desa yang berjarak 8 cm di peta.",text:"Berapakah panjang riil jarak sebenarnya secara nyata di lapangan memisahkan persis di antara kedua perbatasan pedalaman wilayah demografi kedua titik pedesaan tersebut dalam skala kilometer (km)?",options:["Sejauh 2 kilometer","Sejauh 20 kilometer","Sejauh 200 kilometer","Sejauh 2.000 kilometer"],correct:["Sejauh 20 kilometer"]},
+                {id:"smp_n_21",category:"NUMERASI SMP",difficulty:"medium",type:"single",stimulus:"Sebuah produsen pengolahan material pengemasan cat kemasan logam silinder produk kaleng tersebut sudah dipastikan memang diketahui sejak lama memiliki bentuk geometri dari cetakan dasar silinder bangun ruang tabung dengan spesifikasi data rincian kalibrasi batas ukuran metrik tinggi rentang sumbu vertikalnya menyentuh angka 20 cm dari batas alas. Sementara luas area dinding selimut lengkung tabung tersebut adalah sebesar 880 cm persegi. Tim teknisi diwajibkan menggunakan patokan matematis pecahan pi = 22/7.",text:"Berdasarkan rumus geometri tabung, hitunglah jari-jari alas penampang tabung kaleng cat tersebut secara presisi!",options:["7 cm","14 cm","3,5 cm","10 cm"],correct:["7 cm"]},
+                {id:"smp_n_22",category:"NUMERASI SMP",difficulty:"medium",type:"single",stimulus:"Sebuah lift barang memiliki kapasitas beban maksimal sebesar 600 kg. Saat ini, di dalam lift tersebut sudah termuat beban kargo berupa 3 kotak besar dengan berat masing-masing seberat 120 kg. Seorang kurir ingin memasukkan beberapa kotak kecil tambahan seberat 40 kg per kotak ke dalam lift yang sama dalam satu kali angkut.",text:"Apakah kurir tersebut dapat memasukkan maksimal 7 kotak kecil tambahan ke dalam lift tanpa melampaui kapasitas beban maksimum lift barang tersebut?",options:["Benar, karena total beban (360 + 280) = 640 kg masih diperbolehkan","Salah, karena total beban dengan 7 kotak kecil menjadi 640 kg, melebihi batas 600 kg","Benar, karena sisa kapasitas lift adalah 300 kg, dan 7 kotak hanya 280 kg","Salah, karena kurir hanya boleh menambah maksimal 5 kotak kecil saja"],correct:["Salah, karena total beban dengan 7 kotak kecil menjadi 640 kg, melebihi batas 600 kg"]},
+                {id:"smp_n_23",category:"NUMERASI SMP",difficulty:"medium",type:"single",stimulus:"Dalam sistem koordinat Kartesius, hasil analisa ditarik rentangan hasil lukisan garis lurus mewakili garis lintasan sejati dari arah alur navigasi sapuan sebuah mesin robot roda pembersih ruang lantai otomatis. Garis rute dari batas lurus sapuan robot tersebut terpantau melintasi posisi persis titik potong memotong silang di melewati angka (0, 2) dan titik (3, 8). Teknisi ingin memprogram pergerakan robot menggunakan persamaan fungsi linear f(x) = ax + b.",text:"Rumus fungsi linear yang paling tepat untuk mengarahkan rute navigasi dari laju robot tersebut adalah ....",options:["f(x) = 2x + 2","f(x) = 3x + 2","f(x) = 2x + 3","f(x) = 6x + 2"],correct:["f(x) = 2x + 2"]},
+                {id:"smp_n_24",category:"NUMERASI SMP",difficulty:"medium",type:"single",stimulus:"Dalam bagian eksperimen mata pelajaran peluang statistika, murid melakukan percobaan uji coba pelemparan sekeping koin logam sebanyak berulang-ulang hingga mencapai frekuensi 100 kali lemparan. Dari sesi tersebut tercatat muncul sisi angka sebanyak 45 kali. Berdasarkan teori, peluang munculnya sisi angka pada sebuah koin yang adil adalah 0,5.",text:"Pernyataan bahwa 'Frekuensi relatif munculnya angka dalam percobaan tersebut adalah 0,45' adalah ....",options:["Benar, karena frekuensi relatif dihitung dari jumlah kejadian muncul dibagi total percobaan (45/100)","Salah, karena nilai ukuran frekuensi relatif pada dasarnya harus selalu mutlak sama dengan nilai taksiran teoritis yaitu 0,5","Benar, karena koin koin tersebut kemungkinan tidak seimbang kondisinya","Salah, karena rumus mencari frekuensi relatif adalah mencari deviasi (50-45=5)"],correct:["Benar, karena frekuensi relatif dihitung dari jumlah kejadian muncul dibagi total percobaan (45/100)"]},
+                {id:"smp_n_25",category:"NUMERASI SMP",difficulty:"medium",type:"single",stimulus:"Pak Joni memiliki sebidang tanah berbentuk persegi panjang dengan lebar (x - 2) meter dan panjang 15 meter. Pak Joni ingin luas tanahnya tidak kurang dari 120 meter persegi agar bisa ditanami bibit jagung secara maksimal.",text:"Nilai x minimal yang memenuhi kriteria luas tanah Pak Joni adalah ....",options:["8","10","12","15"],correct:["10"]},
+                {id:"smp_n_26",category:"NUMERASI SMP",difficulty:"hard",type:"multiple",stimulus:"Seorang ahli tata letak kota ditugaskan untuk mempresentasikan data pertumbuhan penduduk di balai kota. Ia memiliki beberapa alat visualisasi: diagram garis, diagram batang, dan diagram lingkaran. Agar tidak salah pilih, ia harus memastikan masing-masing diagram digunakan sesuai dengan tujuan presentasinya.",text:"Pasangkanlah secara logis tujuan dan jenis diagram di bawah ini! (Pilih semua jawaban yang tergolong pasangan tepat)",options:["Diagram Garis sangat cocok untuk memperlihatkan tren data dari waktu ke waktu.","Diagram Lingkaran paling tepat digunakan untuk menunjukkan komposisi atau persentase keseluruhan.","Diagram Batang sangat ideal untuk membandingkan jumlah atau nilai dari beberapa kategori yang berbeda.","Semua diagram di atas memiliki fungsi yang sama dan bisa dipertukarkan kapan saja tanpa syarat."],correct:["Diagram Garis sangat cocok untuk memperlihatkan tren data dari waktu ke waktu.","Diagram Lingkaran paling tepat digunakan untuk menunjukkan komposisi atau persentase keseluruhan.","Diagram Batang sangat ideal untuk membandingkan jumlah atau nilai dari beberapa kategori yang berbeda."]},
+                {id:"smp_n_27",category:"NUMERASI SMP",difficulty:"hard",type:"multiple",stimulus:"Keluarga Ardi ingin memasang alat penghemat air pada keran mereka. Tanpa alat, keran mengeluarkan 12 liter air per menit. Dengan alat penghemat, debit air berkurang menjadi 8 liter per menit. Mereka biasanya menggunakan keran selama total 15 menit setiap hari untuk mencuci piring.",text:"Pernyataan yang tepat mengenai penghematan air keluarga Ardi adalah .... (Pilih semua jawaban benar)",options:["Penghematan air yang dilakukan adalah 4 liter setiap menitnya","Total air yang dihemat dalam satu hari adalah 60 liter","Rasio penggunaan air sebelum dan sesudah dipasang alat adalah 2 : 3","Dalam satu minggu, mereka dapat menghemat lebih dari 400 liter air"],correct:["Penghematan air yang dilakukan adalah 4 liter setiap menitnya","Total air yang dihemat dalam satu hari adalah 60 liter","Dalam satu minggu, mereka dapat menghemat lebih dari 400 liter air"]},
+                {id:"smp_n_28",category:"NUMERASI SMP",difficulty:"hard",type:"multiple",stimulus:"Di atas papan tulis kelas, Ibu Guru memberikan tiga buah contoh persamaan matematika sederhana menggunakan satu variabel 'x'. Contoh pertama: 3x = 15. Contoh kedua: 2x + 6 = 14. Contoh ketiga: 15 = 3x. Ibu guru meminta para murid memecahkan nilai x dari ketiga persamaan tersebut untuk menguji kemampuan aljabar dasar mereka.",text:"Berdasarkan ketiga persamaan di atas, pernyataan manakah yang benar tentang nilai 'x'? (Pilih semua yang tepat!)",options:["Pada persamaan pertama (3x = 15), nilai x adalah 5.","Pada persamaan kedua (2x + 6 = 14), nilai x adalah 4.","Pada persamaan ketiga (15 = 3x), nilai x adalah 5.","Tidak satupun dari ketiga persamaan tersebut yang memiliki nilai x positif."],correct:["Pada persamaan pertama (3x = 15), nilai x adalah 5.","Pada persamaan kedua (2x + 6 = 14), nilai x adalah 4.","Pada persamaan ketiga (15 = 3x), nilai x adalah 5."]},
+                {id:"smp_n_29",category:"NUMERASI SMP",difficulty:"hard",type:"multiple",stimulus:"Hasil ujian matematika sekelompok siswa disajikan dalam tabel frekuensi. Data terdiri dari Nilai 60 (4 orang), 70 (8 orang), 80 (10 orang), 90 (6 orang), dan 100 (2 orang). Batas nilai lulus adalah sama dengan nilai rata-rata kelas.",text:"Berdasarkan data pada tabel tersebut, tentukan pernyataan mana yang bernilai benar! (Pilih dua jawaban benar)",options:["Nilai median dari data tersebut adalah 80","Banyaknya siswa yang mengikuti ujian adalah 30 orang","Modus dari data tersebut adalah 10","Rata-rata (mean) nilai kelas tersebut lebih dari 80"],correct:["Nilai median dari data tersebut adalah 80","Banyaknya siswa yang mengikuti ujian adalah 30 orang"]},
+                {id:"smp_n_30",category:"NUMERASI SMP",difficulty:"hard",type:"multiple",stimulus:"Dalam sebuah kotak terdapat kartu yang diberi nomor 1 sampai 20. Seorang anak mengambil satu kartu secara acak. Ia menang jika mendapatkan kartu dengan nomor bilangan prima atau kartu dengan nomor kelipatan 5.",text:"Berdasarkan kondisi tersebut, pernyataan yang benar mengenai peluang kemenangan anak tersebut adalah .... (Pilih semua jawaban benar)",options:["Peluang mendapatkan kartu bilangan prima adalah 8/20","Peluang mendapatkan kartu kelipatan 5 adalah 4/20","Peluang anak tersebut menang adalah 11/20","Hanya ada satu nomor yang merupakan bilangan prima sekaligus kelipatan 5"],correct:["Peluang mendapatkan kartu bilangan prima adalah 8/20","Peluang mendapatkan kartu kelipatan 5 adalah 4/20","Peluang anak tersebut menang adalah 11/20","Hanya ada satu nomor yang merupakan bilangan prima sekaligus kelipatan 5"]},
+
+                // LITERASI SMP
+                {id:"smp_l_1",category:"LITERASI SMP",difficulty:"easy",type:"single",stimulus:"Aris duduk tertegun di tepi lapangan basket sekolahnya yang mulai sepi. Matahari senja membiaskan warna jingga di permukaan semen lapangan. Di tangannya, ia memegang sebuah dompet kulit berwarna cokelat tua yang ia temukan di bawah bangku pemain. Aris tahu dompet itu milik Pak Danu, pelatih basketnya yang terkenal tegas namun sangat baik hati. Aris sempat terpikir untuk membukanya, namun hati kecilnya menolak. Ia segera berdiri dan melangkah menuju ruang guru, berharap Pak Danu masih berada di sana sebelum gerbang sekolah ditutup pada pukul lima sore.",text:"Berdasarkan teks tersebut, latar tempat terjadinya peristiwa penemuan dompet tersebut adalah ....",options:["Ruang guru sekolah","Tepi lapangan basket","Gerbang depan sekolah","Bangku di dalam kelas"],correct:["Tepi lapangan basket"]},
+                {id:"smp_l_2",category:"LITERASI SMP",difficulty:"easy",type:"single",stimulus:"Sekelompok mahasiswa teknik mesin berhasil menciptakan alat filter air berbasis biokarbon dari limbah tempurung kelapa. Biokarbon ini diaktifkan melalui proses pirolisis pada suhu 500 derajat Celcius dalam kondisi tanpa oksigen. Hasilnya, filter ini mampu mereduksi kadar logam berat pada air sumur hingga 90 persen. Inovasi ini sangat potensial untuk diterapkan di daerah pesisir yang sering mengalami krisis air bersih akibat intrusi air laut. Biaya produksinya pun relatif murah dibandingkan filter kimiawi konvensional yang beredar di pasaran saat ini.",text:"Istilah teknis yang merujuk pada proses pembakaran bahan organik tanpa oksigen dalam teks tersebut adalah ....",options:["Filterisasi","Biokarbon","Pirolisis","Intrusi"],correct:["Pirolisis"]},
+                {id:"smp_l_3",category:"LITERASI SMP",difficulty:"easy",type:"single",stimulus:"Penggunaan energi surya di Indonesia terus mengalami peningkatan signifikan dalam lima tahun terakhir. Sebagai negara tropis yang terletak di garis khatulistiwa, Indonesia memiliki potensi radiasi matahari yang sangat melimpah sepanjang tahun. Pemerintah mulai memberikan insentif bagi rumah tangga yang memasang panel surya atap. Selain mengurangi ketergantungan pada bahan bakar fosil, energi surya juga dianggap lebih ramah lingkungan karena tidak menghasilkan emisi gas rumah kaca saat beroperasi. Meski biaya instalasi awal masih cukup tinggi, penghematan tagihan listrik jangka panjang menjadi daya tarik utama bagi konsumen.",text:"Faktor geografis yang mendukung pengoperasian energi surya secara optimal di Indonesia adalah ....",options:["Luas daratan besar","Keberadaan gunung berapi","Letak geografis di garis khatulistiwa","Curah hujan tinggi"],correct:["Letak geografis di garis khatulistiwa"]},
+                {id:"smp_l_4",category:"LITERASI SMP",difficulty:"easy",type:"single",stimulus:"Belalang yang kedinginan tanpa makanan meminta gandum dari Semut. Semut tak tega dan berbagi, walau ia tahu di musim panas Belalang hanya bernyanyi-nyanyi saja. Semut menatap Belalang dan menasihati temannya tersebut untuk menabung ketika cuaca masih mendukung.",text:"Pesan moral utama yang dapat dipetik dari fabel tersebut adalah ....",options:["Jangan pernah meminta bantuan","Kebaikan hati harus tetap ada meski pernah disakiti","Berbagi pada teman baik saja","Bernyanyi buang waktu"],correct:["Kebaikan hati harus tetap ada meski pernah disakiti"]},
+                {id:"smp_l_5",category:"LITERASI SMP",difficulty:"easy",type:"single",stimulus:"Budi sering menunda tugas hingga larut. Akibatnya ia datang terlambat dan mengantuk di dalam kelas saat guru menerangkan pelajaran. Gurunya pernah menasihati agar Budi mengatur jadwal kegiatannya dengan baik.",text:"Sikap Budi mencerminkan karakter ....",options:["Rajin","Kurang disiplin dan meremehkan","Pemberani","Tenang"],correct:["Kurang disiplin dan meremehkan"]},
+                {id:"smp_l_6",category:"LITERASI SMP",difficulty:"easy",type:"single",stimulus:"Tiga tahun berlalu. Kami menyampaikan rasa hormat dan terima kasih tulus kepada Bapak dan Ibu Guru yang membimbing dengan sabar selama kami menimba ilmu di sekolah tercinta ini.",text:"Berdasarkan pidato kelulusan tersebut, ucapan terima kasih ditujukan kepada ....",options:["Siswa junior","Kepala sekolah","Bapak dan Ibu Guru pembimbing","Orang tua"],correct:["Bapak dan Ibu Guru pembimbing"]},
+                {id:"smp_l_7",category:"LITERASI SMP",difficulty:"easy",type:"single",stimulus:"Tindakan Aris yang menolak membuka dompet Pak Danu yang tercecer di lapangan, dan langsung membawa dompet tersebut ke ruang guru demi mengembalikannya secara utuh.",text:"Sifat Aris yang menonjol adalah ....",options:["Pemberani","Jujur dan amanah","Kaku","Penakut"],correct:["Jujur dan amanah"]},
+                {id:"smp_l_8",category:"LITERASI SMP",difficulty:"easy",type:"single",stimulus:"Tari Saman dari Aceh sangat memukau karena keserempakan dan kecepatan geraknya tanpa iringan alat musik. Para penari hanya mengandalkan suara tepukan dada dan paha secara selaras.",text:"Gagasan pokok kalimat tersebut adalah ....",options:["Musik di Aceh","Keserempakan Tari Saman yang memukau","Baju penari","Sejarah tarian"],correct:["Keserempakan Tari Saman yang memukau"]},
+                {id:"smp_l_9",category:"LITERASI SMP",difficulty:"easy",type:"single",stimulus:"Perilaku bullying sangat berbahaya dan meninggalkan trauma yang mendalam bagi korbannya secara emosional maupun fisik dalam jangka panjang.",text:"Tujuan kalimat ini ditulis untuk ....",options:["Mendukung bullying","Memperingatkan bahaya trauma bullying","Menjelaskan cara bullying","Mengajak bermain"],correct:["Memperingatkan bahaya trauma bullying"]},
+                {id:"smp_l_10",category:"LITERASI SMP",difficulty:"easy",type:"single",stimulus:"Air susu dibalas dengan air tuba. Budi yang dibantu selama ini malah menjelek-jelekkan Pak Danu tanpa rasa bersalah sama sekali dibalik punggungnya.",text:"Makna peribahasa tersebut adalah ....",options:["Susu rasanya manis","Kebaikan dibalas dengan kejahatan","Minuman yang segar","Dendam yang lama"],correct:["Kebaikan dibalas dengan kejahatan"]},
+                {id:"smp_l_11",category:"LITERASI SMP",difficulty:"medium",type:"single",stimulus:"Laras berdiri mematung di depan toko buku. Matanya terpaku pada sebuah kamus bahasa Inggris tebal yang harganya setara dengan uang makannya selama seminggu. Di saku roknya, uang itu sudah lecek karena sering diremas. Ibunya berpesan agar uang itu digunakan untuk membayar iuran sekolah. Namun, Laras sangat membutuhkan kamus itu untuk olimpiade minggu depan. Ia merasa seolah ada dua suara yang bertengkar hebat di kepalanya. Kakinya terasa berat, sulit untuk maju masuk ke toko atau mundur pulang ke rumah.",text:"Konflik batin yang dialami Laras dalam kutipan tersebut dipicu oleh ....",options:["Ketidakmampuan Laras dalam mempelajari bahasa Inggris","Ketakutan Laras akan kegagalan dalam olimpiade sekolah","Pertentangan antara kebutuhan mendesak dan tanggung jawab","Rasa bersalah karena telah meremas uang pemberian ibunya"],correct:["Pertentangan antara kebutuhan mendesak dan tanggung jawab"]},
+                {id:"smp_l_12",category:"LITERASI SMP",difficulty:"medium",type:"single",stimulus:"Fenomena alam pelangi selalu sukses memukau mata memandang. Proses terjadinya pelangi berawal ketika sinar cahaya matahari membentur tetesan air hujan yang berada di udara. Karena efek pembiasan, spektrum warna cahaya terurai lalu terpantul. Jika kita ingin mengamati pelangi, pastikan kita berdiri membelakangi matahari. Dengan demikian, jika waktu menunjukkan pagi hari di mana matahari berada di timur, posisi pelangi berada secara logis berseberangan.",text:"Jika seseorang mengamati pelangi di waktu pagi hari, maka di manakah posisi pelangi tersebut berada menurut teks?",options:["Di atas kepala tepat vertikal","Di arah utara atau selatan sejajar matahari","Di sisi yang berlawanan dengan matahari, yaitu sebelah barat","Di arah timur bersamaan dengan posisi matahari terbit"],correct:["Di sisi yang berlawanan dengan matahari, yaitu sebelah barat"]},
+                {id:"smp_l_13",category:"LITERASI SMP",difficulty:"medium",type:"single",stimulus:"Penggunaan media sosial oleh remaja sering kali menjadi pedang bermata dua. Di satu sisi, ia menjadi sarana ekspresi diri dan sumber informasi yang cepat. Namun, risiko gangguan kesehatan mental tidak bisa diabaikan. Sebuah studi menunjukkan bahwa paparan berlebih terhadap gaya hidup 'sempurna' orang lain di media sosial dapat memicu rasa rendah diri dan kecemasan pada remaja. Selain itu, algoritma yang dirancang untuk menjaga pengguna tetap aktif cenderung menciptakan kecanduan digital yang mengurangi waktu tidur dan produktivitas belajar mereka.",text:"Frasa 'pedang bermata dua' pada awal teks tersebut digunakan untuk menggambarkan bahwa media sosial ....",options:["Hanya membawa dampak berbahaya bagi penggunanya","Memiliki dua sisi manfaat yang saling melengkapi","Mempunyai manfaat sekaligus risiko yang berjalan beriringan","Sangat tajam dalam memengaruhi opini publik"],correct:["Mempunyai manfaat sekaligus risiko yang berjalan beriringan"]},
+                {id:"smp_l_14",category:"LITERASI SMP",difficulty:"medium",type:"single",stimulus:"Film 'Langkah Sang Juara' sangat memukau sinematografinya, terutama saat adegan pertandingan final yang diambil dengan teknik slow motion. Sayangnya, alur cerita di bagian tengah terasa terlalu lambat dan bertele-tele.",text:"Kelemahan film tersebut adalah ....",options:["Akting kurang natural","Kamera terlalu cepat","Alur cerita bagian tengah terasa lambat","Pesan moral sulit dipahami"],correct:["Alur cerita bagian tengah terasa lambat"]},
+                {id:"smp_l_15",category:"LITERASI SMP",difficulty:"medium",type:"single",stimulus:"Candi Borobudur merupakan monumen Buddha terbesar di dunia yang dibangun pada masa Dinasti Syailendra antara abad ke-8 dan ke-9 Masehi.",text:"Berdasarkan teks, Candi Borobudur dibangun pada masa ....",options:["Dinasti Ming","Dinasti Syailendra","Majapahit","Sriwijaya"],correct:["Dinasti Syailendra"]},
+                {id:"smp_l_16",category:"LITERASI SMP",difficulty:"medium",type:"single",stimulus:"Jutaan ton sampah plastik ke laut mengancam ekosistem. Kita tidak bisa lagi berdiam diri. Kurangi kantong sekali pakai dan selalu bawa botol minum.",text:"Ajakan utama teks adalah ....",options:["Penelitian penguraian","Pabrik di tepi laut","Mengurangi penggunaan plastik sekali pakai dalam keseharian","Membersihkan pantai setiap hari"],correct:["Mengurangi penggunaan plastik sekali pakai dalam keseharian"]},
+                {id:"smp_l_17",category:"LITERASI SMP",difficulty:"medium",type:"single",stimulus:"Candi Borobudur berbentuk stupa raksasa yang terdiri dari sembilan platform bertumpuk: enam berbentuk bujur sangkar, dan tiga teratas berbentuk lingkaran.",text:"Jumlah platform berbentuk lingkaran adalah ....",options:["Enam","Tiga","Sembilan","Tujuh puluh dua"],correct:["Tiga"]},
+                {id:"smp_l_18",category:"LITERASI SMP",difficulty:"medium",type:"single",stimulus:"Perpustakaan desa baru diresmikan namun sepi. Rak penuh koleksi, tapi warga memilih warung kopi. Jam operasionalnya ternyata bersamaan dengan jam bertani warga di ladang.",text:"Penyebab sepinya pengunjung adalah ....",options:["Koleksi usang","Kurang minat","Jam operasional bentrok dengan kesibukan utama warga","Gedung terlalu jauh"],correct:["Jam operasional bentrok dengan kesibukan utama warga"]},
+                {id:"smp_l_19",category:"LITERASI SMP",difficulty:"medium",type:"single",stimulus:"Daur ulang organik menggunakan limbah dapur. Tambahkan sedikit tanah dan cairan dekomposer untuk mempercepat pembusukan. Aduk campuran setiap tiga hari.",text:"Tujuan penambahan dekomposer adalah ....",options:["Memberi aroma","Memperlambat penguraian","Mempercepat proses pembusukan sampah organik","Mengubah plastik jadi tanah"],correct:["Mempercepat proses pembusukan sampah organik"]},
+                {id:"smp_l_20",category:"LITERASI SMP",difficulty:"medium",type:"single",stimulus:"Uji vitamin C dengan larutan amilum iodin. Teteskan sari buah ke tabung reaksi. Makin sedikit tetesan sari buah untuk menjernihkan, makin tinggi kadar vitamin C.",text:"Indikator tingginya vitamin C adalah ....",options:["Warna pekat","Sedikitnya jumlah tetesan sari buah untuk mengubah warna","Banyak tetesan","Lama mengocok"],correct:["Sedikitnya jumlah tetesan sari buah untuk mengubah warna"]},
+                {id:"smp_l_21",category:"LITERASI SMP",difficulty:"medium",type:"single",stimulus:"Filter biokarbon potensial untuk diterapkan di daerah pesisir yang sering mengalami krisis air bersih akibat meluasnya bahaya intrusi air laut ke sumur warga.",text:"Daerah yang paling butuh filter biokarbon adalah ....",options:["Pegunungan","Daerah pesisir yang tercemar air laut","Perumahan kota","Lahan kering"],correct:["Daerah pesisir yang tercemar air laut"]},
+                {id:"smp_l_22",category:"LITERASI SMP",difficulty:"medium",type:"single",stimulus:"Media sosial memicu kecemasan dari gaya sempurna orang lain. Algoritma merancang candu digital yang kurangi waktu tidur dan rutinitas belajar remaja secara masif.",text:"Argumen kontra penggunaan medsos difokuskan pada ....",options:["Belajar efektif","Dampak negatif bagi kesehatan psikologis dan pola hidup","Kecepatan informasi","Kebebasan ekspresi"],correct:["Dampak negatif bagi kesehatan psikologis dan pola hidup"]},
+                {id:"smp_l_23",category:"LITERASI SMP",difficulty:"medium",type:"single",stimulus:"Setiap tahun plastik berakhir di laut membunuh biota. Perubahan kelestarian yang nyata itu dimulai dari keputusan Anda untuk menolak plastik sekarang juga.",text:"Nada bicara penulis bersifat ....",options:["Pesimis","Menggurui","Mendesak dan inspiratif","Santai humor"],correct:["Mendesak dan inspiratif"]},
+                {id:"smp_l_24",category:"LITERASI SMP",difficulty:"medium",type:"single",stimulus:"Dinding Candi Borobudur dihiasi 2.672 panel relief. Jika semua panel relief unik ini disusun memanjang, maka ia akan mencapai jarak sekitar 6 km penuh detail.",text:"Keistimewaan relief Borobudur adalah ....",options:["Batu berkilauan","Mempunyai jumlah ribuan dan sangat panjang","Dilihat matahari terbit","Seluruh sejarah dinasti"],correct:["Mempunyai jumlah ribuan dan sangat panjang"]},
+                {id:"smp_l_25",category:"LITERASI SMP",difficulty:"medium",type:"single",stimulus:"Semut membagi sebagian simpanan makanan gandumnya karena merasa empati mendalam melihat kondisi si Belalang yang teramat menderita kedinginan saat musim bersalju tiba.",text:"Alasan semut membantu adalah ....",options:["Takut dicuri","Kelebihan makanan","Memiliki rasa empati melihat kondisi Belalang yang menderita","Ingin pamer"],correct:["Memiliki rasa empati melihat kondisi Belalang yang menderita"]},
+                {id:"smp_l_26",category:"LITERASI SMP",difficulty:"hard",type:"multiple",stimulus:"Sebuah puisi yang dibacakan Rina di depan kelas berbunyi: 'Ibu adalah dermaga / Menanti setia setiap anak berlayar / Meski ombak rintangan menggunung / Perahu kecilku tahu arah pulang / Menerabas badai dan pekatnya gulita'. Puisi ini membuat seisi kelas terdiam haru memahami makna di balik kata-katanya yang dalam dan sarat akan filosofi kehidupan.",text:"Dalam konteks puisi di atas, makna perlambangan apa sajakah yang tepat? (Pilih semua jawaban yang benar!)",options:["Dermaga melambangkan tempat pulang (seorang ibu).","Ombak melambangkan cobaan atau rintangan hidup.","Perahu melambangkan diri si anak yang sedang berjuang.","Gulita melambangkan hari yang memang sudah malam secara harfiah."],correct:["Dermaga melambangkan tempat pulang (seorang ibu).","Ombak melambangkan cobaan atau rintangan hidup.","Perahu melambangkan diri si anak yang sedang berjuang."]},
+                {id:"smp_l_27",category:"LITERASI SMP",difficulty:"hard",type:"multiple",stimulus:"Tradisi 'Sambatan' di wilayah pedesaan Jawa masih terjaga dengan kuat. Saat salah satu warga hendak membangun atau memperbaiki rumah, tetangga sekitar akan datang membantu secara sukarela tanpa mengharapkan upah uang. Mereka bekerja bersama dari pagi hingga sore, sementara pemilik rumah menyediakan jamuan makan seadanya. Tradisi ini membuktikan bahwa ikatan kekeluargaan dan solidaritas sosial jauh lebih berharga daripada nilai materi. Di tengah gempuran individualisme perkotaan, Sambatan menjadi pengingat akan pentingnya hidup berdampingan.",text:"Berdasarkan teks tersebut, manakah karakteristik dari tradisi Sambatan yang tepat? (Pilih dua jawaban yang benar) ....",options:["Dilakukan dengan sistem upah harian yang profesional.","Menitikberatkan pada semangat gotong royong dan sukarela.","Hanya boleh dilakukan oleh keluarga inti pemilik rumah.","Menjadi benteng pertahanan terhadap sikap individualisme."],correct:["Menitikberatkan pada semangat gotong royong dan sukarela.","Menjadi benteng pertahanan terhadap sikap individualisme."]},
+                {id:"smp_l_28",category:"LITERASI SMP",difficulty:"hard",type:"multiple",stimulus:"Struktur dari penulisan Teks Laporan Hasil Observasi sejatinya dirancang sistematis. Diawali dengan bagian yang bersifat mengantarkan atau menjelaskan objek (Pernyataan Umum). Dilanjutkan rincian secara khusus mengenai objek tersebut (Deskripsi Bagian). Serta bagian yang menjelaskan manfaat atau kegunaannya dalam kehidupan (Deskripsi Manfaat). Terkadang penulis menambah sebuah paragraf ringkasan di akhir (Simpulan).",text:"Manakah deskripsi tentang struktur laporan hasil observasi yang benar berdasarkan teks? (Pilih semua jawaban yang tepat!)",options:["Pernyataan umum merupakan bagian pengantar dari sebuah laporan.","Deskripsi bagian memuat rincian mendalam tentang objek laporan.","Deskripsi manfaat bertujuan untuk menjelaskan kegunaan objek tersebut.","Simpulan adalah bagian utama yang harus panjang lebar dan bertele-tele."],correct:["Pernyataan umum merupakan bagian pengantar dari sebuah laporan.","Deskripsi bagian memuat rincian mendalam tentang objek laporan.","Deskripsi manfaat bertujuan untuk menjelaskan kegunaan objek tersebut."]},
+                {id:"smp_l_29",category:"LITERASI SMP",difficulty:"hard",type:"multiple",stimulus:"Literasi digital menuntut kecakapan saring informasi dan etika di ruang siber. Di era post-truth, hoaks menyebar dengan kecepatan tidak masuk akal. Seseorang dituntut harus memverifikasi fakta dan sumber sebelum menekan tombol sebarkan demi mencegah polarisasi masyarakat.",text:"Pernyataan yang benar tentang literasi digital (Pilih dua)",options:["Sekadar kemampuan teknis","Verifikasi sumber adalah penting","Hoaks menyebar lama","Etika berkomunikasi di internet adalah bagian dari literasi digital"],correct:["Verifikasi sumber adalah penting","Etika berkomunikasi di internet adalah bagian dari literasi digital"]},
+                {id:"smp_l_30",category:"LITERASI SMP",difficulty:"hard",type:"multiple",stimulus:"Aturan 20-20-20 wajib guna jaga kesehatan mata digital. Tiap 20 menit Anda menatap layar, paksa mata istirahat 20 detik untuk fokus tatap objek sejauh 20 kaki. Hindari mata kering dengan sering berkedip saat sedang bermain gadget.",text:"Tindakan yang disarankan untuk mencegah kerusakan mata... (Pilih dua)",options:["Menatap layar 1 jam henti","Melihat benda jauh setiap 20 menit sekali selama 20 detik","Cahaya ruangan gelap","Sering berkedip untuk mencegah mata kering"],correct:["Melihat benda jauh setiap 20 menit sekali selama 20 detik","Sering berkedip untuk mencegah mata kering"]}
+            ],
+            SMA: [
+                // === NUMERASI SMA (30 SOAL) ===
+                {id:"sma_n_1",category:"NUMERASI SMA",difficulty:"easy",type:"single",stimulus:"Laboratorium biologi sedang meneliti pertumbuhan bakteri jenis baru yang membelah diri menjadi dua setiap 20 menit. Pada awal pengamatan pukul 08.00 WIB, terdapat 100 unit bakteri di dalam cawan petri. Peneliti perlu memprediksi jumlah bakteri pada pukul 10.00 WIB untuk menentukan dosis antibiotik yang tepat.",text:"Berdasarkan stimulus tersebut, jumlah bakteri yang ada di dalam cawan petri pada pukul 10.00 WIB adalah ....",options:["3.200 unit","6.400 unit","12.800 unit","25.600 unit","51.200 unit"],correct:["6.400 unit"]},
+                {id:"sma_n_2",category:"NUMERASI SMA",difficulty:"easy",type:"single",stimulus:"Faza menabung di bank sebesar Rp2.000.000,00 dengan sistem bunga tunggal 12% per tahun. Setelah beberapa bulan, Faza mengecek saldonya dan jumlahnya telah menjadi Rp2.160.000,00.",text:"Lama Faza telah menabung di bank tersebut adalah ....",options:["6 bulan","8 bulan","10 bulan","12 bulan","14 bulan"],correct:["8 bulan"]},
+                {id:"sma_n_3",category:"NUMERASI SMA",difficulty:"easy",type:"single",stimulus:"Sebuah toko roti memproduksi Roti A (200g tepung, 50g mentega) dan Roti B (100g tepung, 75g mentega). Persediaan tepung 4kg (4000g) dan mentega 1,5kg (1500g). x adalah banyak Roti A dan y banyak Roti B.",text:"Model matematika yang tepat untuk kendala persediaan bahan tersebut adalah ....",options:["2x + y <= 40; 2x + 3y <= 60; x >= 0; y >= 0","2x + y <= 40; 3x + 2y <= 60; x >= 0; y >= 0","x + 2y <= 40; 2x + 3y <= 60; x >= 0; y >= 0","2x + y <= 40; 50x + 75y <= 1.500; x >= 0; y >= 0","200x + 100y <= 4; 50x + 75y <= 1.5; x >= 0; y >= 0"],correct:["2x + y <= 40; 2x + 3y <= 60; x >= 0; y >= 0"]},
+                {id:"sma_n_4",category:"NUMERASI SMA",difficulty:"easy",type:"single",stimulus:"Sebuah monumen berbentuk limas segiempat beraturan T.ABCD memiliki panjang rusuk alas 12 m dan tinggi 8 m. Kabel dipasang dari puncak T ke titik tengah rusuk AB.",text:"Panjang minimal kabel dekorasi yang dibutuhkan adalah ....",options:["6 meter","8 meter","10 meter","12 meter","14 meter"],correct:["10 meter"]},
+                {id:"sma_n_5",category:"NUMERASI SMA",difficulty:"easy",type:"single",stimulus:"Hasil ujian matematika dasar dianalisis melalui kuartil. Hasil ulangan tercatat sebagai berikut: 50-59 (5 org), 60-69 (10 org), 70-79 (15 org), 80-89 (10 org). Total peserta adalah 40 orang. Panitia menetapkan siswa di 25% teratas (Q3) mendapat tiket beasiswa penuh dari sekolah.",text:"Batas nilai minimal untuk mendapatkan beasiswa berdasarkan data tersebut adalah ....",options:["78,5","79,5","80,5","81,5","82,5"],correct:["79,5"]},
+                {id:"sma_n_6",category:"NUMERASI SMA",difficulty:"easy",type:"single",stimulus:"OSIS memilih 3 pengurus inti dengan struktur spesifik yaitu (Ketua, Sekretaris, Bendahara) dari sekelompok kelompok elit berisi 10 calon kandidat siswa teladan yang berkualifikasi sama kuat.",text:"Banyaknya susunan kombinasi pengurus berbeda yang mungkin dibentuk adalah ....",options:["120 cara","240 cara","360 cara","720 cara","1.000 cara"],correct:["720 cara"]},
+                {id:"sma_n_7",category:"NUMERASI SMA",difficulty:"easy",type:"single",stimulus:"Sebuah kapal berlayar menembus lautan bebas dari pelabuhan A ke titik pos B dengan arah parameter sudut kompas 060 sejauh 40 mil. Lalu ia mengubah kemudi langsung meluncur ke titik labuh C pada arah bukaan sudut 120 sejauh tepat 60 mil.",text:"Jarak ditarik lurus antara posisi awal pelabuhan A dan pelabuhan tujuan C adalah ....",options:["20 \u221A7 mil","20 \u221A13 mil","20 \u221A19 mil","40 \u221A7 mil","100 mil"],correct:["20 \u221A19 mil"]},
+                {id:"sma_n_8",category:"NUMERASI SMA",difficulty:"easy",type:"single",stimulus:"Fungsi pendapatan harian pabrik garmen digambarkan oleh kurva parabola. Persamaan adalah f(x) = -2x^2 + 800x, di mana x adalah jumlah unit barang pakaian.",text:"Jumlah unit yang harus diproduksi agar batas pendapatan menyentuh titik puncak grafik adalah ....",options:["100 unit","200 unit","400 unit","800 unit","1.600 unit"],correct:["200 unit"]},
+                {id:"sma_n_9",category:"NUMERASI SMA",difficulty:"easy",type:"single",stimulus:"Di dalam keranjang undian sebuah kotak tertutup rapat berisi penuh 5 bola merah murni dan 3 bola putih tulang. Dua buah bola dari dalamnya harus diambil secara acak berurutan dengan metode tanpa pengembalian.",text:"Hitunglah probabilitas peluang terambilnya urutan tepat bola pertama merah disusul bola kedua putih adalah ....",options:["15/64","15/56","5/14","3/8","15/28"],correct:["15/56"]},
+                {id:"sma_n_10",category:"NUMERASI SMA",difficulty:"easy",type:"single",stimulus:"Histogram data pencatatan nilai berat badan populasi siswa. Diketahui tabulasi (titik tengah : frekuensi angka): 42(ada 4), 47(ada 6), 52(ada 8), 57(ada 7), 62(ada 5). Total populasi siswa keseluruhan 30.",text:"Rata-rata kumulatif hitungan berat badan siswa sekolah tersebut adalah ....",options:["52,50 kg","52,83 kg","53,17 kg","53,50 kg","54,00 kg"],correct:["52,50 kg"]},
+                {id:"sma_n_11",category:"NUMERASI SMA",difficulty:"medium",type:"single",stimulus:"Dalam suatu kelas, guru trigonometri menggambarkan sebuah segitiga siku-siku dari sebuah antena pemancar. Diketahui panjang sisi miring (hipotenusa) yang ditarik dari ujung antena ke tanah adalah 17 meter, sedangkan jarak dari kaki antena menyusuri tanah ke titik tersebut (sisi samping) adalah 8 meter. Guru meminta siswa menghitung nilai-nilai perbandingan trigonometrinya.",text:"Berdasarkan perhitungan Pythagoras dan kaidah trigonometri dasar, manakah perbandingan nilai sinus untuk sudut yang dibentuk di titik tanah tersebut?",options:["8/17","15/17","15/8","8/15"],correct:["15/17"]},
+                {id:"sma_n_12",category:"NUMERASI SMA",difficulty:"medium",type:"single",stimulus:"Seorang karyawan merencanakan dana pendidikan anaknya untuk 3 tahun ke depan. Ia menyimpan uang sebesar Rp10.000.000,00 di bank yang memberikan bunga majemuk sebesar 5% per tahun. Karyawan tersebut tidak melakukan penarikan maupun penambahan saldo selama masa investasi.",text:"Besar total uang yang dimiliki karyawan tersebut setelah mengendap selama 3 tahun adalah ....",options:["Rp11.500.000,00","Rp11.576.250,00","Rp11.581.250,00","Rp12.155.060,00","Rp15.000.000,00"],correct:["Rp11.576.250,00"]},
+                {id:"sma_n_13",category:"NUMERASI SMA",difficulty:"medium",type:"single",stimulus:"Sebuah perusahaan manufaktur menemukan bahwa fungsi pendapatan harian mereka mengikuti pola f(x) = -2x^2 + 800x, di mana x adalah jumlah unit barang yang diproduksi dan f(x) adalah pendapatan dalam ribuan rupiah. Manajer produksi ingin mengetahui berapa unit yang harus diproduksi agar pendapatan mencapai titik puncak.",text:"Jumlah unit barang yang harus diproduksi agar perusahaan memperoleh pendapatan maksimum adalah ....",options:["100 unit","200 unit","400 unit","800 unit","1.600 unit"],correct:["200 unit"]},
+                {id:"sma_n_14",category:"NUMERASI SMA",difficulty:"medium",type:"single",stimulus:"Andi datang ke warung dan membeli sebanyak 3 buku dan melengkapinya dengan 2 pensil seharga struk kasir Rp18.000. Di tempat yang sama Budi membeli paket berbeda yaitu 2 buku dan 5 pensil dan harus membayar Rp23.000.",text:"Harga untuk pembelian persis 1 lembar buku tulis dan 1 pensil satuan masing-masing secara eceran adalah ....",options:["Rp4.000,00 dan Rp3.000,00","Rp3.500,00 dan Rp3.500,00","Rp4.500,00 dan Rp2.500,00","Rp5.000,00 dan Rp2.000,00","Rp3.000,00 dan Rp4.500,00"],correct:["Rp4.000,00 dan Rp3.000,00"]},
+                {id:"sma_n_15",category:"NUMERASI SMA",difficulty:"medium",type:"single",stimulus:"Uji zat radioaktif dari material batuan yang menunjukan sifat peluruhan waktu paruh setiap kurun siklus 4 jam sekali. Di awal pengukuran Pukul 06.00 massa padatan awal terukur sebesar 160 gram.",text:"Massa zat material radioaktif beracun yang bersisa dan bertahan pada pukul 22.00 di jadwal hari yang sama adalah ....",options:["5 gram","10 gram","20 gram","40 gram","80 gram"],correct:["10 gram"]},
+                {id:"sma_n_16",category:"NUMERASI SMA",difficulty:"medium",type:"single",stimulus:"Perhatikan teliti bentuk bangunan Kubus ruang berlabel ABCD.EFGH. Parameter bangun padat panjang rusuk sama rata 6 cm penuh. Ada Kawat penguat arsitektur baja ditarik kencang dari titik engsel E menembus langsung ke diagonal garis silang ruang HB.",text:"Taksiran jarak proyeksi garis tegak lurus ditarik vertikal titik E menembus ke persis garis lintasan HB adalah ....",options:["2 \u221A2 cm","2 \u221A3 cm","2 \u221A6 cm","3 \u221A2 cm","3 \u221A6 cm"],correct:["2 \u221A6 cm"]},
+                {id:"sma_n_17",category:"NUMERASI SMA",difficulty:"medium",type:"single",stimulus:"Penugasan guru menginstruksikan murid melakukan pencatatan parameter ukuran rentang tinggi fisik batang dari jenis tanaman tunas cabai dalam satuan standar sentimeter (cm) di buku. Data tinggi tercatat: 2, 3, 5, 8, 7. Guru merumuskan hasil nilai komputasi angka tebakan rata-ratanya (mean) adalah pada angka 5.",text:"Rumus hitung deviasi limit nilai ukuran penyebaran yang disebut hasil deviasi varian dan nilai angka akhir pencatatan ukur Simpangan baku dari himpunan seluruh rincian angka kumpulan sebaran tabulasi parameter ukuran besaran dari dari rincian jenis kumpulan semua data tinggi tanaman tersebut adalah ....",options:["Akar kuadrat \u221A2","Akar kuadrat \u221A3","Akar kuadrat \u221A4,4","Akar kuadrat \u221A5,2","Akar kuadrat \u221A6"],correct:["Akar kuadrat \u221A5,2"]},
+                {id:"sma_n_18",category:"NUMERASI SMA",difficulty:"medium",type:"single",stimulus:"Sebuah tangga disandarkan pada dinding dengan posisi kaki menumpu di lantai dasar berjarak sejauh 3 meter dari dinding. Tangga tersebut membentuk sudut kemiringan elevasi sebesar 60 derajat dengan lantai.",text:"Panjang tangga tersebut adalah ....",options:["3 meter","3 \u221A3 meter","6 meter","6 \u221A3 meter","9 meter"],correct:["6 meter"]},
+                {id:"sma_n_19",category:"NUMERASI SMA",difficulty:"medium",type:"single",stimulus:"Seorang pelukis memiliki 7 warna dasar dan ingin mencampur 3 warna dengan proporsi yang sama rata untuk menciptakan kombinasi rona warna baru yang unik.",text:"Banyaknya warna baru yang dapat dihasilkan oleh pelukis tersebut adalah ....",options:["21 warna","35 warna","42 warna","70 warna","210 warna"],correct:["35 warna"]},
+                {id:"sma_n_20",category:"NUMERASI SMA",difficulty:"medium",type:"single",stimulus:"Tingkat kebisingan dari intensitas bunyi diukur menggunakan skala logaritmik dengan fungsi f(x) = ^2log(x+4), di mana x adalah intensitas daya bunyi mula-mula.",text:"Berapakah hasil nilai dari f(12) pada fungsi logaritma tersebut?",options:["2","3","4","5","6"],correct:["4"]},
+                {id:"sma_n_21",category:"NUMERASI SMA",difficulty:"medium",type:"single",stimulus:"Miniatur balok berukuran 10x10x5 cm digabung dengan limas dengan tinggi 12 cm tepat di atas balok tersebut.",text:"Luas seluruh permukaan luar dari susunan miniatur bangun ruang tersebut (tanpa bidang bagian bawah alas yang menempel meja) adalah ....",options:["460 cm2","560 cm2","660 cm2","760 cm2","860 cm2"],correct:["460 cm2"]},
+                {id:"sma_n_22",category:"NUMERASI SMA",difficulty:"medium",type:"single",stimulus:"Peluang sebuah komponen mesin cetak pabrik diprediksi akan mengalami gangguan atau memunculkan status rusak pada putaran awal adalah sangat kecil yakni berkisar di angka 0,02.",text:"Peluang bahwa komponen yang diperiksa berada dalam kondisi baik dan berfungsi normal tanpa masalah adalah ....",options:["0,02","0,20","0,80","0,98","1,00"],correct:["0,98"]},
+                {id:"sma_n_23",category:"NUMERASI SMA",difficulty:"medium",type:"single",stimulus:"Tersedia sebidang lahan parkir komersial seluas 400 m2 untuk dua jenis kendaraan: mobil (10 m2) dan bus (20 m2). Kapasitas maksimum kendaraan adalah 30 unit.",text:"Apakah titik koordinat (10 mobil, 10 bus) berada dalam daerah penyelesaian?",options:["Ya, berada di dalam daerah penyelesaian","Tidak, berada di luar daerah penyelesaian","Tepat di garis batas maksimum","Tidak dapat ditentukan"],correct:["Ya, berada di dalam daerah penyelesaian"]},
+                {id:"sma_n_24",category:"NUMERASI SMA",difficulty:"medium",type:"single",stimulus:"Segitiga dengan koordinat sudut A(1,2) digeser atau ditranslasikan 3 satuan ke kanan dan 4 satuan ke bawah.",text:"Koordinat bayangan hasil pergeseran titik A' adalah ....",options:["(4, -2)","(7, -2)","(4, 1)","(2, -2)"],correct:["(4, -2)"]},
+                {id:"sma_n_25",category:"NUMERASI SMA",difficulty:"medium",type:"single",stimulus:"Bank Y memberikan penawaran bunga majemuk 10% per tahun, sedangkan Bank X memberikan bunga tunggal 10% per tahun. Keduanya berdurasi selama 2 tahun.",text:"Pernyataan yang tepat mengenai perbandingan saldo tabungan akhir adalah ....",options:["Hasil di Bank Y lebih besar karena efek bunga berbunga","Hasil Bank X dan Bank Y sama","Bank X lebih besar","Hasil tidak bisa ditentukan"],correct:["Hasil di Bank Y lebih besar karena efek bunga berbunga"]},
+                {id:"sma_n_26",category:"NUMERASI SMA",difficulty:"hard",type:"multiple",stimulus:"Dua buah dadu dilemparkan secara bersamaan satu kali. Kejadian A adalah munculnya mata dadu berjumlah 5, dan kejadian B adalah munculnya mata dadu yang keduanya angka genap.",text:"Manakah pernyataan-pernyataan berikut yang benar berdasarkan eksperimen tersebut? (Pilih semua yang benar)",options:["Peluang kejadian A adalah 1/9","Peluang kejadian B adalah 1/4","Kejadian A dan B adalah kejadian yang saling lepas","Jumlah anggota ruang sampel adalah 12"],correct:["Peluang kejadian A adalah 1/9","Peluang kejadian B adalah 1/4","Kejadian A dan B adalah kejadian yang saling lepas"]},
+                {id:"sma_n_27",category:"NUMERASI SMA",difficulty:"hard",type:"multiple",stimulus:"Di papan tulis, guru matematika menjabarkan definisi dasar dari berbagai perhitungan statistika untuk analisis data berkelompok maupun tunggal. Terdapat pengertian tentang Mean (rata-rata), Median (nilai tengah), Modus (nilai paling sering muncul), serta Jangkauan (selisih nilai tertinggi dan terendah).",text:"Berdasarkan definisi statistika dasar tersebut, pernyataan manakah di bawah ini yang tergolong tepat? (Pilih semua jawaban yang benar!)",options:["Mean (rata-rata) dihitung dengan menjumlahkan semua data lalu dibagi jumlah individu data.","Median adalah nilai tengah suatu data yang telah diurutkan dari yang terkecil.","Modus selalu menunjuk pada data pertama yang dilihat atau dicatat pengamat.","Jangkauan (Range) didapat dari mengurangkan nilai maksimum dengan nilai minimum."],correct:["Mean (rata-rata) dihitung dengan menjumlahkan semua data lalu dibagi jumlah individu data.","Median adalah nilai tengah suatu data yang telah diurutkan dari yang terkecil.","Jangkauan (Range) didapat dari mengurangkan nilai maksimum dengan nilai minimum."]},
+                {id:"sma_n_28",category:"NUMERASI SMA",difficulty:"hard",type:"multiple",stimulus:"Seorang pengusaha muda ingin mengoptimalkan lahan parkir seluas 400 m2 untuk dua jenis kendaraan: mobil (10 m2) dan bus (20 m2). Kapasitas maksimum kendaraan adalah 30 unit. Daerah penyelesaian dari masalah ini digambarkan dalam sistem koordinat linier untuk program optimalisasi fungsi objektif.",text:"Berdasarkan kendala lahan dan kapasitas tersebut, berikan tanda centang pada setiap pernyataan yang bernilai benar berikut ini!",options:["Titik (10, 10) berada di dalam daerah penyelesaian","Titik (25, 10) berada di luar daerah penyelesaian","Jumlah maksimum bus yang dapat diparkir jika tidak ada mobil adalah 20 unit","Titik (0, 30) merupakan salah satu titik pojok daerah penyelesaian"],correct:["Titik (10, 10) berada di dalam daerah penyelesaian","Titik (25, 10) berada di luar daerah penyelesaian","Jumlah maksimum bus yang dapat diparkir jika tidak ada mobil adalah 20 unit"]},
+                {id:"sma_n_29",category:"NUMERASI SMA",difficulty:"hard",type:"multiple",stimulus:"1. f(x) = 3x+5\n2. f(x) = x^2-4x+4\n3. f(x) = 2^x\n4. f(x) = log(x)",text:"Pilihlah semua padanan fungsi yang bernilai BENAR di bawah ini!",options:["Persamaan 1 adalah Fungsi Linear","Persamaan 2 adalah Fungsi Kuadrat","Persamaan 3 adalah Fungsi Eksponen","Persamaan 4 adalah Fungsi Logaritma"],correct:["Persamaan 1 adalah Fungsi Linear","Persamaan 2 adalah Fungsi Kuadrat","Persamaan 3 adalah Fungsi Eksponen","Persamaan 4 adalah Fungsi Logaritma"]},
+                {id:"sma_n_30",category:"NUMERASI SMA",difficulty:"hard",type:"multiple",stimulus:"Kawat penguat ditarik sepanjang 17 m dari ujung antena pemancar ke tanah. Jarak horizontal kaki antena ke kawat tersebut di tanah adalah 8 m.",text:"Nilai perbandingan trigonometri kawat terhadap tanah yang benar adalah (Pilih semua yang benar):",options:["Nilai cos(teta) adalah 8/17","Nilai sin(teta) adalah 15/17","Nilai tan(teta) adalah 15/8","Tinggi antena pemancar adalah 10 meter"],correct:["Nilai cos(teta) adalah 8/17","Nilai sin(teta) adalah 15/17","Nilai tan(teta) adalah 15/8"]},
+                
+                // LITERASI SMA
+                {id:"sma_l_1",category:"LITERASI SMA",difficulty:"easy",type:"single",stimulus:"Perkembangan teknologi metaverse telah membawa transformasi signifikan dalam cara manusia berinteraksi di ruang siber. Banyak perusahaan rintisan mencoba mengadopsi teknologi ini untuk menciptakan ekosistem bisnis yang lebih imersif. Namun, tantangan utama terletak pada infrastruktur digital yang belum merata di berbagai daerah. Penggunaan istilah-istilah teknis seringkali diserap langsung dari bahasa asing tanpa melalui proses penyelarasan baku yang ketat, sehingga terkadang membingungkan pengguna awam.",text:"Berdasarkan teks dan kaidah pedoman bahasa Indonesia, di bawah ini manakah penulisan kata serapan yang seringkali disalahartikan namun sebenarnya berstatus BAKU?",options:["transformasi","interaksi","standardisasi","standarisasi"],correct:["standardisasi"]},
+                {id:"sma_l_2",category:"LITERASI SMA",difficulty:"easy",type:"single",stimulus:"Berdasarkan Undang-Undang Republik Indonesia Nomor 24 Tahun 2009, terdapat kewajiban bagi seluruh elemen masyarakat dan pemerintah untuk menggunakan bahasa Indonesia secara baik dan benar pada nama bangunan, jalan, serta ruang publik lainnya. Aturan ini diciptakan semata-mata untuk menguatkan identitas bangsa di tengah arus globalisasi.",text:"Berdasarkan teks peraturan di atas, manakah pernyataan berikut ini yang paling sesuai?",options:["Pemerintah membebaskan penggunaan bahasa asing pada ruang publik secara mutlak.","UU No. 24 Tahun 2009 mewajibkan penggunaan bahasa Indonesia pada fasilitas publik.","Globalisasi adalah satu-satunya alasan mengapa bangunan tidak perlu dinamai.","Hanya pemerintah yang wajib menggunakan bahasa Indonesia, masyarakat tidak."],correct:["UU No. 24 Tahun 2009 mewajibkan penggunaan bahasa Indonesia pada fasilitas publik."]},
+                {id:"sma_l_3",category:"LITERASI SMA",difficulty:"easy",type:"single",stimulus:"Kebijakan fiskal yang diambil pemerintah bertujuan untuk menjaga stabilitas makroekonomi di tengah fluktuasi harga komoditas global. Salah satu instrumen yang digunakan adalah penyesuaian tarif pajak bagi sektor-sektor strategis. Hal ini diharapkan mampu menstimulasi investasi domestik agar pertumbuhan ekonomi tetap berada di jalur positif meskipun terjadi perlambatan ekonomi dunia.",text:"Kata 'menstimulasi' dalam kalimat terakhir teks tersebut bermakna ....",options:["menahan laju pertumbuhan","memberikan dorongan atau rangsangan","melakukan pengawasan secara ketat","menyusun rencana jangka panjang"],correct:["memberikan dorongan atau rangsangan"]},
+                {id:"sma_l_4",category:"LITERASI SMA",difficulty:"easy",type:"single",stimulus:"Matahari perlahan tenggelam di ufuk barat, menyisakan semburat merah. Tak ada suara kendaraan bising yang memekakkan telinga, hanya desir angin yang menyapu ilalang. Pak Tua itu duduk bersandar di kursi kayu kesayangannya.",text:"Suasana dalam cerita adalah ....",options:["menegangkan","sunyi dan tenang","riuh rendah","mencekam"],correct:["sunyi dan tenang"]},
+                {id:"sma_l_5",category:"LITERASI SMA",difficulty:"easy",type:"single",stimulus:"Ki Hajar Dewantara mendirikan Taman Siswa sebagai bentuk perlawanan nyata atas sistem pendidikan kolonial yang diskriminatif. Lewat pendidikan, ia menyemai bibit nasionalisme.",text:"Titik balik perjuangan Ki Hajar Dewantara berdasarkan teks adalah ....",options:["ganti nama","lahir di keraton","pendirian perguruan Taman Siswa","protes kepada pemerintah Belanda"],correct:["pendirian perguruan Taman Siswa"]},
+                {id:"sma_l_6",category:"LITERASI SMA",difficulty:"easy",type:"single",stimulus:"Teks 1: Sang kancil rela memberikan sisa apelnya pada kelinci walau ia belum makan. Teks 2: Pemuda itu mengembalikan dompet berserta isinya utuh kepada sang nenek.",text:"Persamaan nilai moral kedua teks tersebut adalah ....",options:["rajin bekerja","kejujuran dalam bertindak","kepedulian terhadap sesama","berani melawan musuh"],correct:["kepedulian terhadap sesama"]},
+                {id:"sma_l_7",category:"LITERASI SMA",difficulty:"easy",type:"single",stimulus:"Mikroplastik merusak ekosistem dan masuk rantai makanan manusia. Jika tak ubah gaya hidup, lautan kita hanya akan jadi warisan kelam bagi generasi mendatang.",text:"Pesan tersirat penulis adalah ....",options:["berhenti makan dari hasil laut","bangun pabrik plastik","perlunya tindakan nyata mengurangi sampah plastik","mikroplastik adalah bumbu kehidupan"],correct:["perlunya tindakan nyata mengurangi sampah plastik"]},
+                {id:"sma_l_8",category:"LITERASI SMA",difficulty:"easy",type:"single",stimulus:"Istilah sastra: Protagonis adalah tokoh yang sering menjadi pusat cerita.",text:"Arti Protagonis yang tepat adalah ....",options:["Tokoh yang menjadi pusat cerita dan memiliki sifat baik.","Lawan protagonis yang kejam","Gambaran waktu kejadian","Pesan moral cerita"],correct:["Tokoh yang menjadi pusat cerita dan memiliki sifat baik."]},
+                {id:"sma_l_9",category:"LITERASI SMA",difficulty:"easy",type:"single",stimulus:"Istilah sastra: Antagonis adalah tokoh yang merintangi sang pahlawan.",text:"Arti Antagonis adalah ....",options:["Pusat cerita utama","Tokoh yang menjadi penghalang atau lawan dari tokoh utama.","Pesan moral penulis","Setting dan waktu kejadian"],correct:["Tokoh yang menjadi penghalang atau lawan dari tokoh utama."]},
+                {id:"sma_l_10",category:"LITERASI SMA",difficulty:"easy",type:"single",stimulus:"Istilah sastra: Latar memberikan warna pada kehidupan tokoh fiksi.",text:"Arti Latar adalah ....",options:["Pesan atau nasihat","Musuh dalam cerita","Gambaran tempat, waktu, dan suasana terjadinya peristiwa.","Sifat baik pahlawan"],correct:["Gambaran tempat, waktu, dan suasana terjadinya peristiwa."]},
+                {id:"sma_l_11",category:"LITERASI SMA",difficulty:"medium",type:"single",stimulus:"Aris menggenggam surat panggilan kerja itu dengan tangan gemetar. Di satu sisi, ini adalah impiannya untuk bekerja di kota besar sebagai arsitek. Namun, di sisi lain, ibunya baru saja jatuh sakit dan tidak ada yang merawat di desa jika ia pergi. Ia melihat wajah ibunya yang pucat dari balik pintu kamar, lalu beralih menatap surat itu lagi. Hatinya teriris antara mengejar ambisi atau memenuhi kewajiban baktinya.",text:"Konflik yang dialami tokoh Aris pada kutipan tersebut adalah ....",options:["pertentangan antara Aris dengan ibunya yang keras kepala","kebingungan Aris memilih antara karier dan merawat ibu","kekhawatiran Aris terhadap persaingan kerja di kota besar","kesedihan Aris karena gagal mendapatkan pekerjaan impian"],correct:["kebingungan Aris memilih antara karier dan merawat ibu"]},
+                {id:"sma_l_12",category:"LITERASI SMA",difficulty:"medium",type:"single",stimulus:"Pendidikan karakter harus dimulai sejak dini di lingkungan keluarga. Keluarga merupakan madrasah pertama bagi anak untuk mempelajari nilai-nilai kejujuran, disiplin, dan empati. Jika fondasi karakter di rumah sudah kuat, anak akan lebih mudah menyerap nilai-nilai positif di sekolah dan masyarakat. Oleh karena itu, peran orang tua sangat krusial dalam membentuk moralitas generasi masa depan.",text:"Ide pokok dari paragraf tersebut adalah ....",options:["peran penting sekolah dalam pendidikan karakter","pentingnya memulai pendidikan karakter di keluarga","metode pembelajaran nilai kejujuran bagi anak","cara orang tua melatih disiplin pada anak"],correct:["pentingnya memulai pendidikan karakter di keluarga"]},
+                {id:"sma_l_13",category:"LITERASI SMA",difficulty:"medium",type:"single",stimulus:"BPS mencatat tingkat kemiskinan turun 2%, tapi indeks kedalaman kemiskinan justru meningkat. Artinya rata-rata pengeluaran penduduk miskin makin jauh dari batas garis kemiskinan.",text:"Pernyataan akurat berdasar data adalah ....",options:["jumlah orang miskin naik drastis","program pemerintah berhasil penuh","penduduk miskin yang tersisa hidup dalam kondisi yang lebih sulit","garis kemiskinan turun bebas"],correct:["penduduk miskin yang tersisa hidup dalam kondisi yang lebih sulit"]},
+                {id:"sma_l_14",category:"LITERASI SMA",difficulty:"medium",type:"single",stimulus:"(1) Pola makan yang sehat sangat dianjurkan. (2) Konsumsi sayur sangat baik. (3) Banyak remaja melakukan diet ekstrim demi kurus. (4) Padahal tubuh butuh nutrisi seimbang.",text:"Kosakata tidak baku (serapan yang salah) terdapat pada kalimat ....",options:["(1)","(2)","(3)","(4)"],correct:["(3)"]},
+                {id:"sma_l_15",category:"LITERASI SMA",difficulty:"medium",type:"single",stimulus:"Film 'Lentera Desa' memotret tulusnya pendidikan di sarana terbatas. Anak-anak yang antusias belajar sungguh menampar zona kenyamanan orang-orang kota.",text:"Respons emosional pembaca ulasan tersebut kemungkinan besar adalah ....",options:["rasa bangga berlebihan","perasaan haru dan refleksi diri","marah pada sistem pemerintah","keinginan untuk pindah ke desa"],correct:["perasaan haru dan refleksi diri"]},
+                {id:"sma_l_16",category:"LITERASI SMA",difficulty:"medium",type:"single",stimulus:"Candi Borobudur (1) Monumen Buddha terbesar. (2) Terdapat relief dharma. (3) Ramai saat matahari terbit. (4) Harga tiket naik 2 kali lipat tahun ini. (5) Merupakan warisan peradaban maju.",text:"Kalimat yang kurang relevan dengan nilai estetis/historis candi adalah kalimat ....",options:["(2)","(3)","(4)","(5)"],correct:["(4)"]},
+                {id:"sma_l_17",category:"LITERASI SMA",difficulty:"medium",type:"single",stimulus:"Ratna: 'Anak-anak butuh buku bacaan sekarang!' Kades: 'Sabar, prosedur birokrasi ada alurnya.' Ratna: 'Alur bapak justru mematikan masa depan mereka!'",text:"Konflik dalam dialog tersebut berpusat pada ....",options:["jenis buku yang tidak sesuai","indikasi Kades melakukan korupsi","perbedaan pandangan antara urgensi kebutuhan dan prosedur administratif","perebutan kekuasaan wilayah desa"],correct:["perbedaan pandangan antara urgensi kebutuhan dan prosedur administratif"]},
+                {id:"sma_l_18",category:"LITERASI SMA",difficulty:"medium",type:"single",stimulus:"Fenomena buzzer sering kali menggunakan bahasa provokatif dan memperkeruh diskusi publik, sehingga polarisasi makin tajam.",text:"Kata dengan konotasi negatif yang kuat dalam teks adalah ....",options:["argumen","diskusi","memperkeruh","informasi"],correct:["memperkeruh"]},
+                {id:"sma_l_19",category:"LITERASI SMA",difficulty:"medium",type:"single",stimulus:"Teks A: AI di bidang medis mampu menyelamatkan nyawa dengan diagnosis super cepat. Teks B: Penggunaan AI terlalu jauh mengurangi empati manusia dan memiliki risiko kesalahan algoritma yang fatal.",text:"Evaluasi relasi argumen antara Teks A dan B adalah ....",options:["Teks A membantah seluruh Teks B secara telak","Teks B memberikan sudut pandang risiko sebagai penyeimbang potensi pada Teks A","Keduanya membahas topik yang sama sekali berbeda","Teks B terlalu berlebihan merespon AI"],correct:["Teks B memberikan sudut pandang risiko sebagai penyeimbang potensi pada Teks A"]},
+                {id:"sma_l_20",category:"LITERASI SMA",difficulty:"medium",type:"single",stimulus:"Novel 'Langit Biru' tampak terburu-buru menutup kisahnya. Transformasi karakter sang protagonis tidak organik dan terasa dipaksakan demi mencapai akhir yang bahagia.",text:"Kritik sastra ini dinilai relevan dan kuat jika di dalam novel terbukti ada ....",options:["banyak salah eja pengetikan","kemunculan tokoh baru yang tiba-tiba","perubahan sikap tokoh utama yang drastis tanpa alasan yang kuat","latar tempat yang sangat membosankan"],correct:["perubahan sikap tokoh utama yang drastis tanpa alasan yang kuat"]},
+                {id:"sma_l_21",category:"LITERASI SMA",difficulty:"medium",type:"single",stimulus:"Dukunglah penggunaan transportasi umum. Hal ini bukan sekadar mengurangi kemacetan, namun bentuk nyata kepedulian berkelanjutan demi anak cucu kita yang mewarisi bumi.",text:"Asumsi dasar yang digunakan penulis untuk meyakinkan audiens adalah ....",options:["transportasi umum di kota ini sudah sangat nyaman","kendaraan pribadi adalah satu-satunya penyebab polusi","masyarakat memiliki tanggung jawab moral terhadap lingkungan sekitar","subsidi pemerintah harus selalu dikedepankan"],correct:["masyarakat memiliki tanggung jawab moral terhadap lingkungan sekitar"]},
+                {id:"sma_l_22",category:"LITERASI SMA",difficulty:"medium",type:"single",stimulus:"Siswa yang membawa bekal dari rumah di sekolah X terbukti memiliki nilai matematika yang lebih tinggi. Kepala sekolah menyimpulkan bekal mendongkrak kemampuan matematika dan ingin mewajibkannya.",text:"Kelemahan paling fatal dari kesimpulan kepala sekolah ini adalah ....",options:["jenis makanan yang dibekal tidak disebutkan detail","mengabaikan faktor lain seperti kebiasaan belajar dan dukungan fasilitas di rumah","data sekolah X tidak valid digunakan","jumlah keseluruhan siswa tidak dirinci"],correct:["mengabaikan faktor lain seperti kebiasaan belajar dan dukungan fasilitas di rumah"]},
+                {id:"sma_l_23",category:"LITERASI SMA",difficulty:"medium",type:"single",stimulus:"Banyak stasiun TV lebih mengutamakan narasumber yang kontroversial daripada pakar yang kompeten, demi mengejar rating yang tinggi.",text:"Jika prioritasnya terus pada sisi kontroversial, maka edukasi publik akan meningkat. Pernyataan ini dinilai:",options:["Benar, karena penontonnya sangat luas","Salah, karena kontroversi seringkali mengaburkan objektivitas dan kualitas informasi","Benar, karena akan menjadi tren viral","Salah, karena anak muda kurang menyukai berita"],correct:["Salah, karena kontroversi seringkali mengaburkan objektivitas dan kualitas informasi"]},
+                {id:"sma_l_24",category:"LITERASI SMA",difficulty:"medium",type:"single",stimulus:"Berdasarkan Undang-Undang Republik Indonesia Nomor 24 Tahun 2009, terdapat kewajiban bagi seluruh elemen masyarakat dan pemerintah untuk menggunakan bahasa Indonesia secara baik dan benar pada nama bangunan, jalan, serta ruang publik.",text:"Jika seorang pemilik gedung menamai gedungnya dengan bahasa asing, maka menurut aturan:",options:["Salah, bebas pakai","Benar, karena UU No. 24 Tahun 2009 mewajibkan penggunaan bahasa Indonesia","Salah, globalisasi bebas","Benar, asal keren"],correct:["Benar, karena UU No. 24 Tahun 2009 mewajibkan penggunaan bahasa Indonesia"]},
+                {id:"sma_l_25",category:"LITERASI SMA",difficulty:"medium",type:"single",stimulus:"Di tengah derasnya badai hujan, Pak Sastro tetap mengayuh sepedanya dengan penuh tekad untuk mengantarkan bibit tanaman gratis kepada tetangganya demi memenuhi janji yang pernah ia ucapkan sebelum musim tanam usai.",text:"Watak Pak Sastro adalah ....",options:["keras kepala","suka pamer","bertanggung jawab","kurang perhitungan"],correct:["bertanggung jawab"]},
+                {id:"sma_l_26",category:"LITERASI SMA",difficulty:"hard",type:"multiple",stimulus:"Sebuah teks ulasan karya fiksi sastra kelas 12 membahas tentang unsur-unsur pembangun karya tersebut. Penulis resensi menyoroti kehebatan pengarang dalam menghidupkan sifat Protagonis dan Antagonis, menyusun detail Latar waktu dan ruang yang presisi, serta menyelipkan Amanat moral yang kuat tanpa terkesan menggurui pembacanya.",text:"Berdasarkan ulasan di atas, manakah definisi yang TEPAT terkait unsur intrinsik dalam karya sastra? (Pilih semua jawaban benar!)",options:["Protagonis adalah tokoh utama yang biasanya memiliki sifat baik.","Antagonis adalah lawan atau musuh yang menentang tokoh utama.","Latar mencakup informasi mendetail mengenai ruang, waktu, dan suasana.","Amanat adalah pesan moral dari pengarang yang ingin disampaikan kepada pembaca."],correct:["Protagonis adalah tokoh utama yang biasanya memiliki sifat baik.","Antagonis adalah lawan atau musuh yang menentang tokoh utama.","Latar mencakup informasi mendetail mengenai ruang, waktu, dan suasana.","Amanat adalah pesan moral dari pengarang yang ingin disampaikan kepada pembaca."]},
+                {id:"sma_l_27",category:"LITERASI SMA",difficulty:"hard",type:"multiple",stimulus:"Dalam menelaah teks puisi, siswa SMA diajarkan mengenali ragam majas (gaya bahasa). Ada gaya bahasa yang menghidupkan benda mati seolah manusia (Personifikasi). Ada yang melebih-lebihkan keadaan (Hiperbola). Ada yang membandingkan dengan kata hubung 'seperti' atau 'laksana' (Simile). Serta ada perbandingan langsung tanpa kata hubung tersebut (Metafora).",text:"Berdasarkan penjelasan majas tersebut, berikan tanda pada penyataan analisis gaya bahasa yang dinilai tepat! (Bisa lebih dari 1 pilihan)",options:["Majas 'Bulan tersenyum menatap bumi' merupakan contoh Personifikasi.","Majas 'Suaranya menggelegar membelah angkasa' adalah bentuk Hiperbola.","Majas 'Hatinya selembut sutra' adalah bukti dari penggunaan Simile.","Majas 'Raja siang telah menampakkan wujudnya' tidak mengandung majas apapun."],correct:["Majas 'Bulan tersenyum menatap bumi' merupakan contoh Personifikasi.","Majas 'Suaranya menggelegar membelah angkasa' adalah bentuk Hiperbola.","Majas 'Hatinya selembut sutra' adalah bukti dari penggunaan Simile."]},
+                {id:"sma_l_28",category:"LITERASI SMA",difficulty:"hard",type:"multiple",stimulus:"Menghadapi banjir informasi di media sosial, kita harus memiliki kemampuan 'fact-checking' yang baik. Pertama, periksa sumber berita apakah berasal dari institusi resmi atau kredibel. Kedua, jangan hanya membaca judul yang sensasional (clickbait), bacalah isinya secara utuh. Ketiga, bandingkan informasi tersebut dengan media arus utama lainnya. Keempat, periksa tanggal publikasi untuk memastikan informasi tersebut masih relevan.",text:"Manakah dari pernyataan berikut yang merupakan langkah validasi informasi (fact-checking) menurut teks tersebut? (Pilih semua yang benar)",options:["Menyebarkan informasi segera agar menjadi orang pertama yang tahu.","Memeriksa kredibilitas institusi yang menerbitkan berita.","Membaca keseluruhan isi berita, bukan hanya judulnya saja.","Melakukan perbandingan informasi dengan media arus utama."],correct:["Memeriksa kredibilitas institusi yang menerbitkan berita.","Membaca keseluruhan isi berita, bukan hanya judulnya saja.","Melakukan perbandingan informasi dengan media arus utama."]},
+                {id:"sma_l_29",category:"LITERASI SMA",difficulty:"hard",type:"multiple",stimulus:"Prosedur Pengajuan Beasiswa: (1) Mengisi formulir pendaftaran secara daring di situs resmi. (2) Mengunggah pindaian ijazah dan transkrip nilai yang telah dilegalisasi. (3) Menulis esai motivasi sepanjang 500 kata. (4) Meminta surat rekomendasi dari dua tokoh akademisi. (5) Mengikuti seleksi wawancara bagi kandidat yang lolos tahap administrasi. Catatan: Semua dokumen harus diunggah dalam format PDF dengan ukuran maksimal 2MB.",text:"Berdasarkan prosedur tersebut, manakah pernyataan yang benar mengenai syarat dan tahapan pengajuan beasiswa? (Pilih semua yang benar)",options:["Tahap wawancara dilakukan sebelum pengunggahan dokumen untuk menyaring minat.","Esai motivasi merupakan salah satu syarat administratif yang harus dipenuhi.","Terdapat batasan teknis terkait format dan ukuran berkas yang diunggah.","Rekomendasi harus berasal dari orang yang mengenal kapasitas akademik pendaftar."],correct:["Esai motivasi merupakan salah satu syarat administratif yang harus dipenuhi.","Terdapat batasan teknis terkait format dan ukuran berkas yang diunggah.","Rekomendasi harus berasal dari orang yang mengenal kapasitas akademik pendaftar."]},
+                {id:"sma_l_30",category:"LITERASI SMA",difficulty:"hard",type:"multiple",stimulus:"Indonesia merupakan negara megabiodiversitas. Namun, alih fungsi lahan besar-besaran dan eksploitasi alam liar menjadi ancaman nyata bagi kelestarian spesies endemik. Upaya pelestarian ini mutlak memerlukan sinergi yang kuat antara pemerintah daerah yang berwenang dengan partisipasi aktif dari masyarakat adat.",text:"Pernyataan yang benar dari bacaan tersebut adalah ... (Pilih dua):",options:["Eksploitasi hutan secara legal adalah satu-satunya ancaman fauna.","Masyarakat lokal memiliki peran penting dalam keberhasilan upaya konservasi.","Spesies endemik dipastikan 100% aman asal ada aturan tertulis pemerintah.","Alih fungsi lahan turut berkontribusi terhadap ancaman kepunahan fauna liar."],correct:["Masyarakat lokal memiliki peran penting dalam keberhasilan upaya konservasi.","Alih fungsi lahan turut berkontribusi terhadap ancaman kepunahan fauna liar."]}
+            ]
+        };
+
+        let QUESTION_DB = [];
+        let state = {
+            playerName: "Komandan",
+            jenjang: "SD",
+            money: 0,
+            level: 1,
+            myHeroes: [],
+            baseMonsterPower: 690,
+            correctAnswersLog: [],
+            askedQuestions: [], // MENYIMPAN ID SOAL YANG SUDAH DITANYAKAN (ANTI BERULANG)
+            timeLimit: 0,
+            timeRemaining: 0
+        };
+
+        function generateCompleteQuestionBank(jenjang) {
+            const baseSoal = DB_BASE_SOAL[jenjang];
+            const result = [];
+            
+            const reqEasy = 20; // Untuk Level 1 & 2
+            const reqMed = 30;  // Untuk Level 3 & 4
+            const reqHard = 10; // Untuk Level 5
+            
+            function fillDifficulty(targetDiff, reqCount) {
+                let diffBase = baseSoal.filter(q => q.difficulty === targetDiff);
+                if (diffBase.length === 0) diffBase = baseSoal; // Fallback
+                
+                let counter = 0;
+                while (counter < reqCount) {
+                    const template = diffBase[counter % diffBase.length];
+                    const clonedQ = JSON.parse(JSON.stringify(template));
+                    clonedQ.id = `${jenjang.toLowerCase()}_${targetDiff}_${counter}`; // ID Unik
+                    
+                    if (counter >= diffBase.length) {
+                         clonedQ.text = clonedQ.text + "\u200B"; 
+                    }
+                    
+                    result.push(clonedQ);
+                    counter++;
+                }
+            }
+
+            fillDifficulty('easy', reqEasy);
+            fillDifficulty('medium', reqMed);
+            fillDifficulty('hard', reqHard);
+            
+            return result;
+        }
+
+        // --- TIMER LOGIC ---
+        let timerInterval = null;
+
+        function startTimer() {
+            if (state.timeLimit === 0) return; 
+            
+            state.timeRemaining = state.timeLimit * 60; 
+            document.getElementById('timer-box').style.display = 'flex';
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                state.timeRemaining--;
+                updateTimerDisplay();
+
+                if (state.timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    timeOutGameOver();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const timerBox = document.getElementById('timer-box');
+            if (state.timeLimit === 0) {
+                timerBox.style.display = 'none';
+                return;
+            }
+            
+            let m = Math.floor(state.timeRemaining / 60);
+            let s = state.timeRemaining % 60;
+            document.getElementById('time-display').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+
+            if (state.timeRemaining <= 60) {
+                timerBox.classList.add('timer-alert');
+            } else {
+                timerBox.classList.remove('timer-alert');
+            }
+        }
+
+        function timeOutGameOver() {
+            const modal = document.getElementById('result-modal');
+            document.getElementById('result-title').innerText = "WAKTU HABIS!";
+            document.getElementById('result-title').style.color = "#e74c3c";
+            document.getElementById('result-message').innerText = `Sayang sekali Komandan ${state.playerName}, waktu misimu telah habis! Bumi telah dikuasai monster.`;
+            
+            document.getElementById('normal-nav-buttons').innerHTML = `<button class="btn btn-red" onclick="location.reload()">Ulangi Misi</button>`;
+            document.getElementById('final-recap-area').style.display = 'none';
+            modal.style.display = 'flex';
+        }
+
+        // --- START GAME LOGIC ---
+        function startGame() {
+            const nameInput = document.getElementById('player-name-input').value;
+            if (nameInput.trim() === "") {
+                showNotification("Mohon masukkan nama Komandan!");
+                return;
+            }
+            
+            state.playerName = nameInput;
+            state.jenjang = document.getElementById('jenjang-select').value;
+            state.timeLimit = parseInt(document.getElementById('time-mode-select').value);
+            
+            // Inisialisasi Bank Soal Spesifik Jenjang
+            QUESTION_DB = generateCompleteQuestionBank(state.jenjang);
+            
+            document.getElementById('player-name-display').innerText = state.playerName;
+            document.getElementById('jenjang-badge').innerText = state.jenjang;
+
+            document.getElementById('tutorial-screen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('tutorial-screen').style.display = 'none';
+                document.getElementById('hud').style.display = 'flex';
+                document.getElementById('arena').style.display = 'flex';
+                document.getElementById('action-bar').style.display = 'flex';
+                
+                toggleMusic(true);
+                startTimer();
+                initLevel(1);
+            }, 500);
+        }
+
+        function initLevel(lvl) {
+            const mData = MONSTER_LEVELS.find(m => m.level === lvl);
+            if (!mData) {
+                showFinalVictory();
+                return;
+            }
+
+            state.level = lvl;
+            state.baseMonsterPower = mData.power;
+            
+            updateHUD();
+            renderHeroes();
+            renderMonster(mData);
+        }
+
+        // --- CORE POWER CALCULATIONS ---
+        function getCalculatedTeamPower() {
+            let totalHeroPower = 0;
+            state.myHeroes.forEach(h => totalHeroPower += h.power);
+            
+            let suryaCount = state.myHeroes.filter(h => h.name === "Panglima Surya").length;
+            let gaiaCount = state.myHeroes.filter(h => h.name === "Panglima Gaia").length;
+
+            if (suryaCount > 0) totalHeroPower += (30 * state.myHeroes.length * suryaCount);
+            if (gaiaCount > 0) totalHeroPower += (10 * state.myHeroes.length * gaiaCount);
+
+            return totalHeroPower;
+        }
+
+        function getCalculatedMonsterPower() {
+            let currentMonsterPower = state.baseMonsterPower;
+            let lunarCount = state.myHeroes.filter(h => h.name === "Panglima Lunar").length;
+            
+            if (lunarCount > 0) {
+                currentMonsterPower -= (30 * lunarCount);
+            }
+            return Math.max(0, currentMonsterPower);
+        }
+
+        // --- CORE FUNCTIONS (UPDATE HUD & BUFF LOGIC) ---
+        function updateHUD() {
+            document.getElementById('level-display').innerText = state.level;
+            document.getElementById('money-display').innerText = "Rp " + state.money.toLocaleString('id-ID');
+            
+            let buffTexts = [];
+            let suryaCount = state.myHeroes.filter(h => h.name === "Panglima Surya").length;
+            let gaiaCount = state.myHeroes.filter(h => h.name === "Panglima Gaia").length;
+            let lunarCount = state.myHeroes.filter(h => h.name === "Panglima Lunar").length;
+
+            if (suryaCount > 0) buffTexts.push(`✨ Surya: +${30 * state.myHeroes.length * suryaCount} All`);
+            if (gaiaCount > 0) buffTexts.push(`🌿 Gaia: +${10 * state.myHeroes.length * gaiaCount} All`);
+            if (lunarCount > 0) buffTexts.push(`🌙 Lunar: -${30 * lunarCount} Monster`);
+
+            document.getElementById('player-power-display').innerText = getCalculatedTeamPower();
+            document.getElementById('monster-power-display').innerText = getCalculatedMonsterPower();
+            
+            const buffIndicator = document.getElementById('buff-indicator');
+            if (buffTexts.length > 0) {
+                buffIndicator.style.display = 'block';
+                buffIndicator.innerHTML = buffTexts.join(" | ");
+            } else {
+                buffIndicator.style.display = 'none';
+            }
+        }
+
+        function renderHeroes() {
+            const container = document.getElementById('my-heroes');
+            container.innerHTML = '';
+            if (state.myHeroes.length === 0) {
+                container.innerHTML = '<div style="opacity: 0.7; font-style: italic; color: #ddd; font-size: 1.2rem; margin-top: 50px;">Belum ada pahlawan.</div>';
+                return;
+            }
+            state.myHeroes.forEach((hero, index) => container.appendChild(createCard(hero, false, index)));
+        }
+
+        function renderMonster(mData) {
+            const container = document.getElementById('current-monster');
+            container.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'card monster-card';
+            div.style.backgroundImage = `url('${mData.imgUrl}')`;
+            
+            div.innerHTML = `<div class="card-power">${getCalculatedMonsterPower()}</div>`; 
+            container.appendChild(div);
+        }
+
+        function createCard(hero, isShop, index = null) {
+            const div = document.createElement('div');
+            div.className = `card ${hero.tier}`;
+            if (isShop) div.classList.add('shop-item-wrapper');
+            div.style.backgroundImage = `url('${hero.imgUrl}')`;
+            
+            const footerText = isShop ? `Rp ${hero.price.toLocaleString()}` : hero.tier.toUpperCase();
+            const specialText = hero.effect ? `<div class="special-effect">${hero.effect}</div>` : '';
+
+            div.innerHTML = `
+                <div class="card-power">${hero.power}</div>
+                ${specialText}
+                <div class="card-price">${footerText}</div>
+            `;
+
+            if (!isShop && index !== null) {
+                const deleteBtn = document.createElement('div');
+                deleteBtn.className = 'discard-btn';
+                deleteBtn.innerHTML = '🗑️';
+                deleteBtn.title = "Hapus Hero Ini";
+                deleteBtn.onclick = function(e) {
+                    e.stopPropagation(); 
+                    discardHero(index);
+                };
+                div.appendChild(deleteBtn);
+            }
+            
+            if (isShop) {
+                div.onclick = () => buyHero(hero);
+            }
+            return div;
+        }
+
+        // --- BATTLE & PROGRESSION ---
+        function attackMonster() {
+            if (state.myHeroes.length === 0) {
+                showNotification("Rekrut pahlawan dulu!");
+                return;
+            }
+            
+            let totalHeroPower = getCalculatedTeamPower();
+            let currentMonsterPower = getCalculatedMonsterPower();
+
+            const mZone = document.getElementById('monster-zone');
+            mZone.classList.add('shake-anim');
+            setTimeout(() => mZone.classList.remove('shake-anim'), 500);
+
+            if (totalHeroPower > currentMonsterPower) {
+                playSound('levelup');
+                showLevelUpPopup(state.level);
+            } else {
+                playSound('wrong');
+                showNotification("Kalah Power! Cari dana & beli hero lagi!");
+            }
+        }
+
+        function showLevelUpPopup(lvl) {
+            if (lvl >= 5) {
+                showFinalVictory();
+                return;
+            }
+
+            const modal = document.getElementById('result-modal');
+            document.getElementById('result-title').innerText = `Level ${lvl} Selesai!`;
+            document.getElementById('result-title').style.color = "#2ecc71";
+            document.getElementById('result-message').innerText = `Selamat Komandan ${state.playerName}! Monster berhasil dikalahkan. Siap untuk tantangan berikutnya?`;
+            
+            document.getElementById('normal-nav-buttons').style.display = 'flex';
+            document.getElementById('final-recap-area').style.display = 'none';
+            
+            const nextBtn = document.getElementById('btn-next-level');
+            nextBtn.onclick = () => {
+                closeModal('result-modal');
+                initLevel(state.level + 1);
+            };
+            modal.style.display = 'flex';
+        }
+
+        function showFinalVictory() {
+            if(timerInterval) clearInterval(timerInterval);
+            
+            const modal = document.getElementById('result-modal');
+            document.getElementById('result-title').innerText = "MISI SUKSES! BUMI AMAN!";
+            document.getElementById('result-title').style.color = "#ffd700";
+            document.getElementById('result-message').innerText = `Luar Biasa, Komandan ${state.playerName}! Anda telah mengalahkan Jenderal Naga Hitam dan memenangkan permainan.`;
+
+            document.getElementById('normal-nav-buttons').style.display = 'none';
+            
+            const recapArea = document.getElementById('final-recap-area');
+            const recapList = document.getElementById('recap-list');
+            recapList.innerHTML = '';
+            
+            if (state.correctAnswersLog.length > 0) {
+                state.correctAnswersLog.forEach((item) => {
+                    const row = document.createElement('div');
+                    row.className = 'recap-item';
+                    row.innerHTML = `
+                        <div class="recap-question"><span style="color:#888; font-size:0.8rem;">[${item.cat}]</span><br>${item.q}</div>
+                        <div class="recap-answer">✔ ${item.a}</div>
+                    `;
+                    recapList.appendChild(row);
+                });
+            } else {
+                recapList.innerHTML = '<div style="text-align:center; color:#888;">Tidak ada catatan soal yang terjawab.</div>';
+            }
+
+            recapArea.style.display = 'block';
+            modal.style.display = 'flex';
+        }
+
+        // --- QUIZ LOGIC (ANBK STYLE & PENGACAKAN ANTI-BERULANG) ---
+        let currentQuestion = null;
+
+        function getQuestionByDifficulty() {
+            let difficulty = "easy";
+            if (state.level === 3 || state.level === 4) difficulty = "medium";
+            if (state.level === 5) difficulty = "hard";
+            
+            let eligible = QUESTION_DB.filter(q => q.difficulty === difficulty && !state.askedQuestions.includes(q.id));
+            
+            if (eligible.length === 0) {
+                const diffQuestionIds = QUESTION_DB.filter(q => q.difficulty === difficulty).map(q => q.id);
+                state.askedQuestions = state.askedQuestions.filter(id => !diffQuestionIds.includes(id));
+                eligible = QUESTION_DB.filter(q => q.difficulty === difficulty);
+            }
+            
+            const randomIndex = Math.floor(Math.random() * eligible.length);
+            const q = eligible[randomIndex];
+            
+            state.askedQuestions.push(q.id); 
+            return q;
+        }
+
+        function openQuestion() {
+            const modal = document.getElementById('question-modal');
+            currentQuestion = getQuestionByDifficulty();
+            
+            const subTitle = currentQuestion.type === 'multiple' ? ' (Pilih >1 Jawaban)' : '';
+            document.getElementById('q-category').innerText = `LITERASI & NUMERASI${subTitle}`;
+            document.getElementById('q-difficulty').innerText = `Level: ${currentQuestion.difficulty.toUpperCase()}`;
+            
+            document.getElementById('q-stimulus').innerText = currentQuestion.stimulus;
+            document.getElementById('q-text').innerText = currentQuestion.text;
+            
+            const opts = document.getElementById('q-options');
+            opts.innerHTML = '';
+
+            const submitBtn = document.getElementById('submit-answer-btn');
+            submitBtn.style.display = 'inline-block';
+            submitBtn.onclick = () => validateAnbkAnswer();
+
+            [...currentQuestion.options].sort(() => Math.random() - 0.5).forEach((opt) => {
+                const label = document.createElement('label');
+                label.className = 'answer-label-anbk';
+                
+                const inputType = currentQuestion.type === 'multiple' ? 'checkbox' : 'radio';
+                const inputName = currentQuestion.type === 'multiple' ? '' : 'name="anbk-answer"';
+                
+                label.innerHTML = `<input type="${inputType}" value="${opt}" class="anbk-check" ${inputName}> <span>${opt}</span>`;
+                opts.appendChild(label);
+            });
+            
+            modal.style.display = 'flex';
+        }
+
+        function validateAnbkAnswer() {
+            if (!currentQuestion) return;
+
+            const inputs = document.querySelectorAll('.anbk-check');
+            let selectedOpts = [];
+            inputs.forEach(input => { if(input.checked) selectedOpts.push(input.value); });
+            
+            if (selectedOpts.length === 0) {
+                showNotification("Silakan pilih jawaban Anda terlebih dahulu!");
+                return;
+            }
+
+            document.getElementById('submit-answer-btn').style.display = 'none';
+            inputs.forEach(input => input.disabled = true);
+
+            const correctOpts = currentQuestion.correct;
+            const isCorrect = selectedOpts.length === correctOpts.length && selectedOpts.every(val => correctOpts.includes(val));
+
+            const labels = document.querySelectorAll('.answer-label-anbk');
+            labels.forEach(label => {
+                const input = label.querySelector('input');
+                if (correctOpts.includes(input.value)) {
+                    label.classList.add('correct'); 
+                } else if (input.checked) {
+                    label.classList.add('wrong'); 
+                }
+            });
+
+            if (isCorrect) {
+                playSound('correct');
+                handleCorrectReward(currentQuestion, selectedOpts);
+            } else {
+                playSound('wrong');
+                handleWrongAnswer();
+            }
+        }
+
+        function handleCorrectReward(questionObj, userAnswers) {
+            state.correctAnswersLog.push({
+                cat: questionObj.category,
+                q: questionObj.text,
+                a: userAnswers.join(', '),
+                lvl: questionObj.difficulty.toUpperCase()
+            });
+
+            setTimeout(() => {
+                let baseReward = 5000;
+                if(questionObj.difficulty === 'medium') baseReward = 7500;
+                if(questionObj.difficulty === 'hard') baseReward = 10000;
+                if(questionObj.type === 'multiple') baseReward += 5000; 
+
+                let reward = baseReward + Math.floor(Math.random() * 2000);
+                state.money += reward;
+                showNotification(`Jawaban Benar! +Rp ${reward.toLocaleString()}`);
+                updateHUD();
+                closeModal('question-modal');
+            }, 1800);
+        }
+
+        function handleWrongAnswer() {
+            setTimeout(() => {
+                showNotification("Jawaban Kurang Tepat!");
+                closeModal('question-modal');
+            }, 2000);
+        }
+
+        function openShop() {
+            const modal = document.getElementById('shop-modal');
+            const container = document.getElementById('shop-container');
+            container.innerHTML = '';
+            HERO_DB.forEach(hero => {
+                container.appendChild(createCard(hero, true));
+            });
+            modal.style.display = 'flex';
+        }
+
+        function buyHero(hero) {
+            if(state.myHeroes.length >= 5) { showNotification("Tim Penuh (Maks 5)!"); return; } 
+            if(state.money < hero.price) { showNotification("Dana Kurang!"); return; }
+            
+            state.money -= hero.price;
+            state.myHeroes.push({...hero}); 
+            updateHUD();
+            
+            const currentMonsterData = MONSTER_LEVELS.find(m => m.level === state.level);
+            if(currentMonsterData) renderMonster(currentMonsterData);
+
+            renderHeroes();
+            showNotification(`+ ${hero.name}`);
+            closeModal('shop-modal');
+            playSound('buy');
+        }
+
+        let heroToDiscardIndex = null; 
+        function discardHero(index) {
+            heroToDiscardIndex = index;
+            document.getElementById('discard-confirm-modal').style.display = 'flex';
+        }
+
+        function executeDiscard() {
+            if (heroToDiscardIndex !== null) {
+                const removedHero = state.myHeroes[heroToDiscardIndex];
+                state.myHeroes.splice(heroToDiscardIndex, 1);
+                updateHUD();
+                
+                const currentMonsterData = MONSTER_LEVELS.find(m => m.level === state.level);
+                if(currentMonsterData) renderMonster(currentMonsterData);
+
+                renderHeroes();
+                showNotification(`- ${removedHero.name} Dibuang`);
+                
+                heroToDiscardIndex = null;
+                closeModal('discard-confirm-modal');
+            }
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {});
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        
+        function showNotification(txt) {
+            const el = document.getElementById('notification');
+            el.innerText = txt;
+            el.style.opacity = '1';
+            el.style.top = '50%';
+            setTimeout(() => { el.style.opacity = '0'; el.style.top = '20%'; }, 2000);
+        }
+        
+        function playSound(type) { 
+            const sounds = {
+                'correct': document.getElementById('sfx-correct'),
+                'wrong': document.getElementById('sfx-wrong'),
+                'buy': document.getElementById('sfx-buy'),
+                'levelup': document.getElementById('sfx-levelup')
+            };
+            const el = sounds[type];
+            if (el) {
+                el.currentTime = 0;
+                el.play().catch(e => console.log("Audio play blocked by browser:", e));
+            }
+        }
+
+        const bgm = document.getElementById('bgm');
+        const musicBtn = document.getElementById('music-btn');
+        let isMusicPlaying = false;
+        function toggleMusic(forcePlay = false) {
+            if (!isMusicPlaying || forcePlay) {
+                bgm.play().then(() => {
+                    musicBtn.innerHTML = "🔊";
+                    musicBtn.classList.add('playing');
+                    isMusicPlaying = true;
+                }).catch((e) => {
+                    console.log("Autoplay background music blocked.", e);
+                });
+            } else {
+                bgm.pause();
+                musicBtn.innerHTML = "🔇";
+                musicBtn.classList.remove('playing');
+                isMusicPlaying = false;
+            }
+        }
+    </script>
+</body>
+</html>
